@@ -271,6 +271,53 @@ def _init_sqlite(c):
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER UNIQUE NOT NULL,
+            first_name  TEXT    DEFAULT '',
+            last_name   TEXT    DEFAULT '',
+            email       TEXT    DEFAULT '',
+            phone       TEXT    DEFAULT '',
+            date_of_birth TEXT,
+            country     TEXT    DEFAULT '',
+            bio         TEXT    DEFAULT '',
+            updated_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            date        TEXT    NOT NULL,
+            type        TEXT    NOT NULL,
+            category    TEXT    NOT NULL,
+            description TEXT    DEFAULT '',
+            amount      REAL    NOT NULL,
+            date_added  TEXT    DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS net_worth_history (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            month           TEXT    NOT NULL,
+            total_income    REAL    DEFAULT 0,
+            total_expenses  REAL    DEFAULT 0,
+            total_savings   REAL    DEFAULT 0,
+            total_debt      REAL    DEFAULT 0,
+            net_worth       REAL    DEFAULT 0,
+            health_score    INTEGER DEFAULT 0,
+            recorded_at     TEXT    DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, month),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
 
 def _init_postgres(c):
     """PostgreSQL table definitions (SERIAL, DOUBLE PRECISION)."""
@@ -398,5 +445,49 @@ def _init_postgres(c):
             category      TEXT    NOT NULL,
             monthly_limit DOUBLE PRECISION DEFAULT 0,
             UNIQUE(user_id, category)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            id          SERIAL PRIMARY KEY,
+            user_id     INTEGER UNIQUE NOT NULL REFERENCES users(id),
+            first_name  TEXT    DEFAULT '',
+            last_name   TEXT    DEFAULT '',
+            email       TEXT    DEFAULT '',
+            phone       TEXT    DEFAULT '',
+            date_of_birth TEXT,
+            country     TEXT    DEFAULT '',
+            bio         TEXT    DEFAULT '',
+            updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            id          SERIAL PRIMARY KEY,
+            user_id     INTEGER NOT NULL REFERENCES users(id),
+            date        TEXT    NOT NULL,
+            type        TEXT    NOT NULL,
+            category    TEXT    NOT NULL,
+            description TEXT    DEFAULT '',
+            amount      DOUBLE PRECISION NOT NULL,
+            date_added  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS net_worth_history (
+            id              SERIAL PRIMARY KEY,
+            user_id         INTEGER NOT NULL REFERENCES users(id),
+            month           TEXT    NOT NULL,
+            total_income    DOUBLE PRECISION DEFAULT 0,
+            total_expenses  DOUBLE PRECISION DEFAULT 0,
+            total_savings   DOUBLE PRECISION DEFAULT 0,
+            total_debt      DOUBLE PRECISION DEFAULT 0,
+            net_worth       DOUBLE PRECISION DEFAULT 0,
+            health_score    INTEGER DEFAULT 0,
+            recorded_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, month)
         )
     ''')

@@ -6,17 +6,69 @@
     <h1>⚙️ Settings</h1>
 </div>
 
-<!-- Profile card -->
+<!-- ── Profile Card ── -->
 <div class="settings-card">
     <div class="settings-card-icon">👤</div>
     <div class="settings-card-body">
         <span class="settings-card-title">Logged in as</span>
         <span class="settings-card-value">{{ user.username }}</span>
+        {% if profile and profile.first_name %}
+        <span class="settings-card-sub">{{ profile.first_name }} {{ profile.last_name }}</span>
+        {% endif %}
     </div>
 </div>
 
-<!-- Currency selector -->
+<!-- ── Profile Details ── -->
 <form method="POST" action="/settings">
+    <input type="hidden" name="action" value="profile">
+    <div class="settings-section">
+        <div class="settings-section-label">🪪 Profile Information</div>
+        <div class="settings-section-desc">
+            Your personal details — visible only to you.
+        </div>
+        <div class="form-grid-2col">
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name" name="first_name"
+                       value="{{ profile.first_name if profile else '' }}" placeholder="First name">
+            </div>
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name" name="last_name"
+                       value="{{ profile.last_name if profile else '' }}" placeholder="Last name">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email"
+                       value="{{ profile.email if profile else '' }}" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone"
+                       value="{{ profile.phone if profile else '' }}" placeholder="+44 7000 000000">
+            </div>
+            <div class="form-group">
+                <label for="date_of_birth">Date of Birth</label>
+                <input type="date" id="date_of_birth" name="date_of_birth"
+                       value="{{ profile.date_of_birth if profile and profile.date_of_birth else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="country">Country</label>
+                <input type="text" id="country" name="country"
+                       value="{{ profile.country if profile else '' }}" placeholder="Country">
+            </div>
+        </div>
+        <div class="form-group" style="margin-top:.5rem">
+            <label for="bio">Bio / Notes</label>
+            <textarea id="bio" name="bio" rows="3" placeholder="A short note about yourself...">{{ profile.bio if profile else '' }}</textarea>
+        </div>
+        <button type="submit" class="btn-submit settings-save">Save Profile</button>
+    </div>
+</form>
+
+<!-- ── Currency Selector ── -->
+<form method="POST" action="/settings">
+    <input type="hidden" name="action" value="currency">
     <div class="settings-section">
         <div class="settings-section-label">🌍 Currency Symbol</div>
         <div class="settings-section-desc">
@@ -32,11 +84,40 @@
             </label>
             {% endfor %}
         </div>
-        <button type="submit" class="btn-submit settings-save">Save Settings</button>
+        <button type="submit" class="btn-submit settings-save">Save Currency</button>
     </div>
 </form>
 
-<!-- Export section -->
+<!-- ── Change Password ── -->
+<form method="POST" action="/settings">
+    <input type="hidden" name="action" value="password">
+    <div class="settings-section">
+        <div class="settings-section-label">🔑 Change Password</div>
+        {% if request.args.get('error') == 'wrong_password' %}
+        <div class="alert alert-danger">Current password is incorrect.</div>
+        {% elif request.args.get('error') == 'password_mismatch' %}
+        <div class="alert alert-danger">New passwords don't match or are too short (min 4 chars).</div>
+        {% endif %}
+        <div class="form-grid-2col">
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required placeholder="••••••••">
+            </div>
+            <div class="form-group"></div>
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required minlength="4" placeholder="••••••••">
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="4" placeholder="••••••••">
+            </div>
+        </div>
+        <button type="submit" class="btn-submit settings-save">Update Password</button>
+    </div>
+</form>
+
+<!-- ── Export Section ── -->
 <div class="settings-section">
     <div class="settings-section-label">📥 Export Data</div>
     <div class="settings-section-desc">
@@ -52,7 +133,7 @@
     </div>
 </div>
 
-<!-- Danger zone -->
+<!-- ── Danger Zone ── -->
 <div class="settings-section danger-zone">
     <div class="settings-section-label">🔒 Account</div>
     <a href="/logout" class="btn-logout-full">Log Out</a>

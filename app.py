@@ -1035,16 +1035,66 @@ def settings():
     conn    = get_db()
 
     if request.method == "POST":
-        new_currency = request.form.get("currency", "£")
-        conn.execute("UPDATE users SET currency=? WHERE id=?", (new_currency, user_id))
-        conn.commit()
-        session["currency"] = new_currency
+        action = request.form.get("action", "currency")
+
+        if action == "currency":
+            new_currency = request.form.get("currency", "£")
+            conn.execute("UPDATE users SET currency=? WHERE id=?", (new_currency, user_id))
+            conn.commit()
+            session["currency"] = new_currency
+
+        elif action == "profile":
+            first_name = request.form.get("first_name", "").strip()
+            last_name  = request.form.get("last_name", "").strip()
+            email      = request.form.get("email", "").strip()
+            phone      = request.form.get("phone", "").strip()
+            dob        = request.form.get("date_of_birth", "").strip()
+            country    = request.form.get("country", "").strip()
+            bio        = request.form.get("bio", "").strip()
+
+            # Check if profile exists
+            existing = conn.execute(
+                "SELECT id FROM user_profiles WHERE user_id=?", (user_id,)
+            ).fetchone()
+
+            if existing:
+                conn.execute('''
+                    UPDATE user_profiles
+                    SET first_name=?, last_name=?, email=?, phone=?,
+                        date_of_birth=?, country=?, bio=?, updated_at=CURRENT_TIMESTAMP
+                    WHERE user_id=?
+                ''', (first_name, last_name, email, phone, dob, country, bio, user_id))
+            else:
+                conn.execute('''
+                    INSERT INTO user_profiles
+                        (user_id, first_name, last_name, email, phone, date_of_birth, country, bio)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, first_name, last_name, email, phone, dob, country, bio))
+            conn.commit()
+
+        elif action == "password":
+            current_pw = request.form.get("current_password", "")
+            new_pw     = request.form.get("new_password", "")
+            confirm_pw = request.form.get("confirm_password", "")
+
+            user_row = conn.execute("SELECT password FROM users WHERE id=?", (user_id,)).fetchone()
+            if user_row["password"] != hash_password(current_pw):
+                conn.close()
+                return redirect("/settings?error=wrong_password")
+            if new_pw != confirm_pw or len(new_pw) < 4:
+                conn.close()
+                return redirect("/settings?error=password_mismatch")
+
+            conn.execute("UPDATE users SET password=? WHERE id=?", (hash_password(new_pw), user_id))
+            conn.commit()
+
         conn.close()
         return redirect("/settings")
 
-    user = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    user    = conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    profile = conn.execute("SELECT * FROM user_profiles WHERE user_id=?", (user_id,)).fetchone()
     conn.close()
-    return render_template("settings.html", user=user, currencies=CURRENCIES)
+    return render_template("settings.html", user=user, profile=profile, currencies=CURRENCIES)
 
 
 # ─────────────────────────────────────────────
