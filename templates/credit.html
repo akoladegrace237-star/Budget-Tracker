@@ -1,0 +1,63 @@
+﻿{% extends "base.html" %}
+{% block title %}Credit Cards — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💳 Credit Cards</h1>
+    <div class="header-actions">
+        <a href="/debt-payoff" class="btn-export" title="Debt Payoff Calculator">🧠 Payoff</a>
+        <button class="btn-add" onclick="openSheet('addCreditSheet')">+ Add</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<div class="flash-messages">
+{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
+</div>{% endif %}{% endwith %}
+
+{% if cards %}
+<div class="debt-cards">
+    {% for card in cards %}
+    <div class="debt-card">
+        <div class="debt-card-header">
+            <span class="debt-name">{{ card.name }}</span>
+            <span class="badge danger">{{ card.rate }}% APR</span>
+        </div>
+        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
+        <div class="debt-actions">
+            <form method="POST" action="/credit/pay">
+                <input type="hidden" name="card_id" value="{{ card.id }}">
+                <div class="pay-row">
+                    <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                    <button type="submit" class="pay-btn">✔ Pay</button>
+                </div>
+            </form>
+            <a href="/credit/delete/{{ card.id }}" class="btn-delete"
+               onclick="return confirmDelete('Delete this card?')">🗑 Delete Card</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">💳</span>
+    No credit cards yet — tap <strong>+ Add</strong> to track your cards
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Add Credit Card -->
+<div class="bottom-sheet" id="addCreditSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Add Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('addCreditSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/credit/add" class="sheet-form">
+            <div class="form-group"><label>Card Name</label><input type="text" name="name" placeholder="e.g. Visa, Amex…" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
+                <div class="form-group"><label>Current Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" placeholder="0.00" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Add Card</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

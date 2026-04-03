@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Register — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">💰</div>
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-subtitle">Start tracking your finances today</p>
+
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/register" class="auth-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Choose a password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+        </form>
+
+        <p class="auth-switch">Already have an account? <a href="/login">Sign in here</a></p>
+    </div>
+</div>
+{% endblock %}

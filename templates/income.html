@@ -1,0 +1,86 @@
+﻿{% extends "base.html" %}
+{% block title %}Income — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💵 Income</h1>
+    <div class="header-actions">
+        <button class="btn-add" onclick="openSheet('addIncomeSheet')">+ Add</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<div class="flash-messages">
+{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
+</div>{% endif %}{% endwith %}
+
+{% if records %}
+<div class="record-list">
+    {% for r in records %}
+    {% set total = r.salary + r.bonus + r.side + r.rental + r.dividends + r.gifts + r.other %}
+    <div class="record-card">
+        <div class="record-card-main" onclick="toggleRecord(this)">
+            <div class="record-info">
+                <span class="record-month">{{ r.month }}</span>
+                <span class="record-sub">Income record</span>
+            </div>
+            <div class="record-right">
+                <span class="record-amount pos">{{ currency }}{{ "%.2f"|format(total) }}</span>
+                <span class="record-chevron">›</span>
+            </div>
+        </div>
+        <div class="record-card-details">
+            {% if r.salary %}   <div class="detail-row"><span class="dl">Salary</span>     <span class="dv">{{ currency }}{{ "%.2f"|format(r.salary) }}</span></div>{% endif %}
+            {% if r.bonus %}    <div class="detail-row"><span class="dl">Bonus</span>      <span class="dv">{{ currency }}{{ "%.2f"|format(r.bonus) }}</span></div>{% endif %}
+            {% if r.side %}     <div class="detail-row"><span class="dl">Side Income</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.side) }}</span></div>{% endif %}
+            {% if r.rental %}   <div class="detail-row"><span class="dl">Rental</span>     <span class="dv">{{ currency }}{{ "%.2f"|format(r.rental) }}</span></div>{% endif %}
+            {% if r.dividends %}<div class="detail-row"><span class="dl">Dividends</span>  <span class="dv">{{ currency }}{{ "%.2f"|format(r.dividends) }}</span></div>{% endif %}
+            {% if r.gifts %}    <div class="detail-row"><span class="dl">Gifts</span>      <span class="dv">{{ currency }}{{ "%.2f"|format(r.gifts) }}</span></div>{% endif %}
+            {% if r.other %}    <div class="detail-row"><span class="dl">Other</span>      <span class="dv">{{ currency }}{{ "%.2f"|format(r.other) }}</span></div>{% endif %}
+            <div class="detail-row total"><span class="dl">Total</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
+            <div class="detail-actions">
+                <a href="/income/delete/{{ r.id }}" class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">💰</span>
+    No income records yet — tap <strong>+ Add</strong> to get started
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Add Income -->
+<div class="bottom-sheet" id="addIncomeSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header">
+        <h3>Add Income</h3>
+        <button class="sheet-close-btn" onclick="closeSheet('addIncomeSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+        <form method="POST" action="/income/add" class="sheet-form">
+            <div class="form-group">
+                <label>Month</label>
+                <input type="month" name="month" value="{{ now }}" required>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Salary ({{ currency }})</label><input type="number" name="salary" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Bonus ({{ currency }})</label><input type="number" name="bonus" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Side Income ({{ currency }})</label><input type="number" name="side" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Rental ({{ currency }})</label><input type="number" name="rental" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Dividends ({{ currency }})</label><input type="number" name="dividends" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Gifts ({{ currency }})</label><input type="number" name="gifts" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="form-group"><label>Other ({{ currency }})</label><input type="number" name="other" step="0.01" min="0" placeholder="0.00"></div>
+            <button type="submit" class="btn-submit">Save Income Record</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

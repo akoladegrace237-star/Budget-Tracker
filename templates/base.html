@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Budget Tracker">
+    <title>{% block title %}Budget Tracker{% endblock %}</title>
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    <!-- Original design-system CSS -->
+    <link rel="stylesheet" href="/styles.css">
+    <!-- Flask-specific overrides -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- PWA Install Banner -->
+<div id="installBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:12px 16px;
+  align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.3);font-size:.95rem;">
+  <span>📲 Install Budget Tracker for a better experience!</span>
+  <span style="display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="installApp()" style="background:#fff;color:#4f46e5;border:none;padding:6px 16px;
+      border-radius:6px;font-weight:600;cursor:pointer;">Install</button>
+    <button onclick="dismissInstall()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);
+      padding:6px 12px;border-radius:6px;cursor:pointer;">Later</button>
+  </span>
+</div>
+
+{% if session.get('user_id') %}
+<div class="container" id="mainApp">
+
+    <header class="header">
+        <div class="header-brand">
+            <img src="/icons/icon.svg" alt="Budget Tracker" class="header-logo" onerror="this.style.display='none'">
+            <div class="header-brand-text">
+                <h1>Budget Tracker</h1>
+                <p>Manage your income, expenses, and plan for the future</p>
+            </div>
+        </div>
+        <div class="header-controls">
+            <span class="header-username">👤 {{ session.get('username','') }}</span>
+        </div>
+    </header>
+
+    <!-- Hamburger for Mobile — replaced by bottom nav -->
+
+    <!-- Desktop Nav -->
+    <nav class="tabs" id="navTabs">
+        {% for path, label in [
+            ('dashboard',   'Dashboard'),
+            ('income',      'Income'),
+            ('expenses',    'Expenses'),
+            ('recurring',   'Recurring'),
+            ('budgets',     'Budgets'),
+            ('savings',     'Savings'),
+            ('credit',      'Credit'),
+            ('loans',       'Loans'),
+            ('debt-payoff', 'Debt Payoff'),
+            ('projections', 'Projections'),
+            ('shares',      'Foreign Shares'),
+            ('settings',    'Settings'),
+        ] %}
+        <a href="/{{ path }}" class="tab-btn {% if request.path == '/' + path %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+        <a href="/logout" class="tab-btn logout-tab-btn">🔒 Logout</a>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="tab-content active" style="display:block!important">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <p>Budget Tracker &copy; 2026 &mdash; Built for Financial Freedom</p>
+    </footer>
+
+    <!-- ── Bottom Nav (mobile only) ── -->
+    {% set cur = request.path %}
+    <nav class="bottom-nav" id="bottomNav">
+        <a href="/dashboard"  class="bnav-item {% if cur == '/dashboard'  %}active{% endif %}">
+            <span class="bnav-icon">🏠</span><span class="bnav-label">Home</span>
+        </a>
+        <a href="/income"     class="bnav-item {% if cur == '/income'     %}active{% endif %}">
+            <span class="bnav-icon">💰</span><span class="bnav-label">Income</span>
+        </a>
+        <a href="/expenses"   class="bnav-item {% if cur == '/expenses'   %}active{% endif %}">
+            <span class="bnav-icon">💸</span><span class="bnav-label">Expenses</span>
+        </a>
+        <a href="/recurring"  class="bnav-item {% if cur == '/recurring'  %}active{% endif %}">
+            <span class="bnav-icon">🔄</span><span class="bnav-label">Bills</span>
+        </a>
+        <button class="bnav-item {% if cur in ['/savings','/credit','/loans','/projections','/shares','/budgets','/debt-payoff','/settings'] %}active{% endif %}"
+                onclick="openMoreMenu()">
+            <span class="bnav-icon">☰</span><span class="bnav-label">More</span>
+        </button>
+    </nav>
+
+    <!-- ── More menu overlay ── -->
+    <div class="more-overlay" id="moreOverlay" onclick="closeMoreMenu()"></div>
+    <div class="more-sheet" id="moreSheet">
+        <div class="more-sheet-handle"></div>
+        <p class="more-sheet-title">More sections</p>
+        <div class="more-grid">
+            <a href="/budgets"     class="more-item"><span class="more-item-icon">🎯</span>Budgets</a>
+            <a href="/savings"     class="more-item"><span class="more-item-icon">🏦</span>Savings</a>
+            <a href="/credit"      class="more-item"><span class="more-item-icon">💳</span>Credit</a>
+            <a href="/loans"       class="more-item"><span class="more-item-icon">🏛</span>Loans</a>
+            <a href="/debt-payoff" class="more-item"><span class="more-item-icon">🧠</span>Debt Payoff</a>
+            <a href="/projections" class="more-item"><span class="more-item-icon">📊</span>Projections</a>
+            <a href="/shares"      class="more-item"><span class="more-item-icon">📈</span>Shares</a>
+            <a href="/settings"    class="more-item"><span class="more-item-icon">⚙️</span>Settings</a>
+            <a href="/logout"      class="more-item danger"><span class="more-item-icon">🔒</span>Logout</a>
+        </div>
+    </div>
+
+    <!-- ── Global sheet overlay (for add forms) ── -->
+    <div class="sheet-overlay" id="sheetOverlay" onclick="closeActiveSheet()"></div>
+
+</div><!-- /#mainApp -->
+
+{% else %}
+<!-- Auth pages (no navbar) -->
+{{ self.content() }}
+{% endif %}
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+// Register service worker for PWA install prompt
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    console.log('SW registered:', reg.scope);
+  }).catch(err => console.warn('SW registration failed:', err));
+}
+
+// Capture beforeinstallprompt for custom install banner
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'flex';
+});
+
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    deferredPrompt = null;
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+
+function dismissInstall() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+}
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,107 @@
+﻿{% extends "base.html" %}
+{% block title %}Budgets — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎯 Budgets</h1>
+    <button class="btn-add" onclick="openSheet('setBudgetSheet')">Set Limits</button>
+</div>
+
+<!-- Cash Flow Forecast Card -->
+<div class="forecast-card">
+    <h3 class="forecast-title">📅 {{ cur_month }} Cash Flow Forecast</h3>
+    <div class="forecast-grid">
+        <div class="forecast-item">
+            <span class="forecast-label">Income</span>
+            <span class="forecast-value pos">{{ currency }}{{ "%.2f"|format(cur_income) }}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Recurring Bills</span>
+            <span class="forecast-value neg">−{{ currency }}{{ "%.2f"|format(recurring_total) }}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Discretionary Spent</span>
+            <span class="forecast-value neg">−{{ currency }}{{ "%.2f"|format(cur_expenses) }}</span>
+        </div>
+        <div class="forecast-item forecast-balance">
+            <span class="forecast-label">Projected Balance</span>
+            <span class="forecast-value {% if forecast_balance >= 0 %}pos{% else %}neg{% endif %}">
+                {% if forecast_balance >= 0 %}+{% endif %}{{ currency }}{{ "%.2f"|format(forecast_balance) }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Comparison by Category -->
+<div class="budget-section-title">Category Limits vs Actual ({{ cur_month }})</div>
+
+{% if comparison %}
+<div class="budget-list">
+    {% for cat in comparison %}
+    <div class="budget-row status-{{ cat.status }}">
+        <div class="budget-row-top">
+            <div class="budget-row-info">
+                <span class="budget-cat-label">{{ cat.label }}</span>
+                {% if cat.status == 'over' %}
+                    <span class="traffic-light tl-red" title="Over budget">●</span>
+                {% elif cat.status == 'warning' %}
+                    <span class="traffic-light tl-yellow" title="Approaching limit">●</span>
+                {% elif cat.status == 'ok' %}
+                    <span class="traffic-light tl-green" title="Within budget">●</span>
+                {% else %}
+                    <span class="traffic-light tl-grey" title="No limit set">●</span>
+                {% endif %}
+            </div>
+            <div class="budget-row-amounts">
+                <span class="budget-spent">{{ currency }}{{ "%.2f"|format(cat.spent) }}</span>
+                {% if cat.limit > 0 %}
+                <span class="budget-of">/ {{ currency }}{{ "%.2f"|format(cat.limit) }}</span>
+                {% else %}
+                <span class="budget-of no-limit">no limit</span>
+                {% endif %}
+            </div>
+        </div>
+        {% if cat.limit > 0 %}
+        <div class="budget-bar-track">
+            <div class="budget-bar-fill status-{{ cat.status }}"
+                 style="width: {{ [cat.pct, 100]|min }}%"></div>
+        </div>
+        <div class="budget-pct">
+            {% if cat.pct is not none %}
+                {{ cat.pct }}% used
+                {% if cat.status == 'over' %}— ⚠️ Over by {{ currency }}{{ "%.2f"|format(cat.spent - cat.limit) }}{% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">🎯</span>
+    No spending this month yet — set limits to start tracking
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Set Budget Limits -->
+<div class="bottom-sheet" id="setBudgetSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header">
+        <h3>Set Monthly Limits</h3>
+        <button class="sheet-close-btn" onclick="closeSheet('setBudgetSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+        <form method="POST" action="/budgets/save" class="sheet-form">
+            <p class="sheet-note">Enter 0 or leave blank = no limit for that category.</p>
+            {% for key, label in categories %}
+            <div class="form-group">
+                <label>{{ label }} ({{ currency }})</label>
+                <input type="number" name="{{ key }}" step="0.01" min="0" placeholder="0.00"
+                       value="{{ limits.get(key, '') if limits.get(key, 0) > 0 else '' }}">
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn-submit">Save Limits</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

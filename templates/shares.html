@@ -1,0 +1,78 @@
+﻿{% extends "base.html" %}
+{% block title %}Foreign Shares — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📈 Shares</h1>
+    <div class="header-actions">
+        <button class="btn-add" onclick="openSheet('addShareSheet')">+ Add</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<div class="flash-messages">
+{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
+</div>{% endif %}{% endwith %}
+
+{% if investments %}
+{% set total_portfolio = namespace(val=0) %}
+{% for inv in investments %}{% set total_portfolio.val = total_portfolio.val + inv.units * inv.price_per_unit %}{% endfor %}
+
+<div class="section-card" style="margin-bottom:14px;">
+    <div class="section-card-body" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:.85rem;color:var(--text-light,#888);font-weight:600;">TOTAL PORTFOLIO</span>
+        <span style="font-size:1.4rem;font-weight:800;color:var(--primary-color,#4361EE);">{{ currency }}{{ "%.2f"|format(total_portfolio.val) }}</span>
+    </div>
+</div>
+
+<div class="record-list">
+    {% for inv in investments %}
+    {% set total = inv.units * inv.price_per_unit %}
+    <div class="record-card">
+        <div class="record-card-main" onclick="toggleRecord(this)">
+            <div class="record-info">
+                <span class="record-name">{{ inv.name }}</span>
+                <span class="record-sub">{{ inv.units }} units</span>
+            </div>
+            <div class="record-right">
+                <span class="record-amount pos">{{ currency }}{{ "%.2f"|format(total) }}</span>
+                <span class="record-chevron">›</span>
+            </div>
+        </div>
+        <div class="record-card-details">
+            <div class="detail-row"><span class="dl">Units</span>          <span class="dv">{{ inv.units }}</span></div>
+            <div class="detail-row"><span class="dl">Price / Unit</span>   <span class="dv">{{ currency }}{{ "%.4f"|format(inv.price_per_unit) }}</span></div>
+            <div class="detail-row total"><span class="dl">Total Value</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
+            {% if inv.date_bought %}<div class="detail-row"><span class="dl">Date Bought</span><span class="dv">{{ inv.date_bought }}</span></div>{% endif %}
+            <div class="detail-actions">
+                <a href="/shares/delete/{{ inv.id }}" class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">📈</span>
+    No investments yet — tap <strong>+ Add</strong> to track your portfolio
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Add Investment -->
+<div class="bottom-sheet" id="addShareSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Add Investment</h3><button class="sheet-close-btn" onclick="closeSheet('addShareSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/shares/add" class="sheet-form">
+            <div class="form-group"><label>Stock / Asset Name</label><input type="text" name="name" placeholder="e.g. Apple (AAPL)" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Units / Shares</label><input type="number" name="units" step="0.0001" min="0" placeholder="0" required></div>
+                <div class="form-group"><label>Price Per Unit ({{ currency }})</label><input type="number" name="price_per_unit" step="0.0001" min="0" placeholder="0.00" required></div>
+            </div>
+            <div class="form-group"><label>Date Bought</label><input type="date" name="date_bought"></div>
+            <button type="submit" class="btn-submit">Add Investment</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

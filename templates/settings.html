@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Settings — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>⚙️ Settings</h1>
+</div>
+
+<!-- Profile card -->
+<div class="settings-card">
+    <div class="settings-card-icon">👤</div>
+    <div class="settings-card-body">
+        <span class="settings-card-title">Logged in as</span>
+        <span class="settings-card-value">{{ user.username }}</span>
+    </div>
+</div>
+
+<!-- Currency selector -->
+<form method="POST" action="/settings">
+    <div class="settings-section">
+        <div class="settings-section-label">🌍 Currency Symbol</div>
+        <div class="settings-section-desc">
+            All monetary amounts across the app will use this symbol.
+        </div>
+        <div class="currency-grid">
+            {% for sym, label in currencies %}
+            <label class="currency-option {% if sym == user.currency %}selected{% endif %}">
+                <input type="radio" name="currency" value="{{ sym }}"
+                       {% if sym == user.currency %}checked{% endif %}>
+                <span class="currency-sym">{{ sym }}</span>
+                <span class="currency-name">{{ label.split('—')[1].strip() }}</span>
+            </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn-submit settings-save">Save Settings</button>
+    </div>
+</form>
+
+<!-- Export section -->
+<div class="settings-section">
+    <div class="settings-section-label">📥 Export Data</div>
+    <div class="settings-section-desc">
+        Download your data as CSV files for use in Excel, Google Sheets, or any spreadsheet app.
+    </div>
+    <div class="export-grid">
+        <a href="/export/income"    class="export-btn">💰 Income CSV</a>
+        <a href="/export/expenses"  class="export-btn">💸 Expenses CSV</a>
+        <a href="/export/recurring" class="export-btn">🔄 Recurring CSV</a>
+        <a href="/export/savings"   class="export-btn">🏦 Savings CSV</a>
+        <a href="/export/debt"      class="export-btn">💳 Debt CSV</a>
+        <a href="/export/shares"    class="export-btn">📈 Shares CSV</a>
+    </div>
+</div>
+
+<!-- Danger zone -->
+<div class="settings-section danger-zone">
+    <div class="settings-section-label">🔒 Account</div>
+    <a href="/logout" class="btn-logout-full">Log Out</a>
+</div>
+{% endblock %}

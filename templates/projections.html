@@ -1,0 +1,97 @@
+﻿{% extends "base.html" %}
+{% block title %}Projections — Budget Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 Projections</h1>
+    <p class="page-subtitle">Based on your last 6 months of data</p>
+</div>
+
+<div class="charts-grid">
+    <div class="card">
+        <div class="card-header"><h2>Income Trend</h2></div>
+        <div class="card-body">
+            <canvas id="incomeChart" height="300"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2>Expense Trend</h2></div>
+        <div class="card-body">
+            <canvas id="expenseChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if income_labels %}
+<div class="card">
+    <div class="card-header"><h2>Summary Table</h2></div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net</th></tr>
+            </thead>
+            <tbody>
+                {% for i in range(income_labels|length) %}
+                {% set exp = expense_values[i] if i < expense_values|length else 0 %}
+                <tr>
+                    <td>{{ income_labels[i] }}</td>
+                    <td>{{ currency }}{{ "%.2f"|format(income_values[i]) }}</td>
+                    <td>{{ currency }}{{ "%.2f"|format(exp) }}</td>
+                    <td class="{{ 'text-success' if income_values[i] - exp >= 0 else 'text-danger' }}">
+                        {{ currency }}{{ "%.2f"|format(income_values[i] - exp) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+    <div class="card"><div class="card-body"><p class="empty-state">No data yet. Add income and expenses to see projections.</p></div></div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const incomeLabels  = {{ income_labels  | tojson }};
+const incomeValues  = {{ income_values  | tojson }};
+const expenseLabels = {{ expense_labels | tojson }};
+const expenseValues = {{ expense_values | tojson }};
+
+new Chart(document.getElementById('incomeChart'), {
+    type: 'line',
+    data: {
+        labels: incomeLabels,
+        datasets: [{
+            label: 'Income ({{ currency }})',
+            data: incomeValues,
+            borderColor: '#4361ee',
+            backgroundColor: 'rgba(67,97,238,0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+new Chart(document.getElementById('expenseChart'), {
+    type: 'line',
+    data: {
+        labels: expenseLabels,
+        datasets: [{
+            label: 'Expenses ({{ currency }})',
+            data: expenseValues,
+            borderColor: '#f72585',
+            backgroundColor: 'rgba(247,37,133,0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

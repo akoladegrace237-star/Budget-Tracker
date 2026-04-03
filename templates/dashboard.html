@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Budget Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>window.CURRENCY = "{{ currency }}";</script>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Topbar -->
+<div class="dashboard-topbar">
+    <div class="greeting-block">
+        <h2 class="greeting-msg" id="greetingMsg">Hello 👋</h2>
+        <span class="dashboard-date" id="dashboardDate"></span>
+    </div>
+</div>
+
+<!-- Net Worth Hero -->
+<div class="net-worth-hero">
+    <div class="nw-label">Total Net Worth</div>
+    <div class="nw-amount" id="netWorthAmount">£0.00</div>
+    <div class="nw-meta">
+        <span class="nw-sub">Assets − Liabilities</span>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-cards">
+    <div class="card income-card">
+        <div class="card-icon">💰</div>
+        <div class="card-content">
+            <h3>Total Income</h3>
+            <p class="amount" id="totalIncome">£0.00</p>
+            <span class="card-trend positive">All time</span>
+            <div class="card-month-row">
+                <span class="card-month-tag">This month</span>
+                <span class="card-month-val positive" id="monthIncome">£0.00</span>
+            </div>
+            <div class="card-balance-row">
+                <span class="card-month-tag">Balance</span>
+                <span class="card-month-val" id="monthBalance">£0.00</span>
+            </div>
+        </div>
+    </div>
+    <div class="card expense-card">
+        <div class="card-icon">💳</div>
+        <div class="card-content">
+            <h3>Total Expenses</h3>
+            <p class="amount" id="totalExpenses">£0.00</p>
+            <span class="card-trend">All time</span>
+            <div class="card-month-row">
+                <span class="card-month-tag">This month<br><small>incl. bills</small></span>
+                <span class="card-month-val danger" id="monthExpense">£0.00</span>
+            </div>
+        </div>
+    </div>
+    <div class="card saving-card">
+        <div class="card-icon">🏦</div>
+        <div class="card-content">
+            <h3>Gross Savings</h3>
+            <p class="amount" id="grossSavings">£0.00</p>
+            <span class="card-trend">Available</span>
+        </div>
+    </div>
+    <div class="card investment-card">
+        <div class="card-icon">📈</div>
+        <div class="card-content">
+            <h3>Investments</h3>
+            <p class="amount" id="totalInvestments">£0.00</p>
+            <span class="card-trend">Portfolio</span>
+        </div>
+    </div>
+    <div class="card net-card">
+        <div class="card-icon">✨</div>
+        <div class="card-content">
+            <h3>Net Savings</h3>
+            <p class="amount" id="netSavings">£0.00</p>
+            <span class="card-trend">After investments</span>
+        </div>
+    </div>
+    <div class="card rate-card">
+        <div class="card-icon">📊</div>
+        <div class="card-content">
+            <h3>Savings Rate</h3>
+            <p class="amount" id="savingsRate">0%</p>
+            <span class="card-trend">Target: 20%</span>
+        </div>
+    </div>
+    <div class="card debt-card">
+        <div class="card-icon">💳</div>
+        <div class="card-content">
+            <h3>Total Debt</h3>
+            <p class="amount" id="totalDebt">£0.00</p>
+            <span class="card-trend" id="debtBreakdown">Credit + Loans</span>
+        </div>
+    </div>
+    <div class="card investment-card">
+        <div class="card-icon">📈</div>
+        <div class="card-content">
+            <h3>Foreign Shares</h3>
+            <p class="amount" id="totalPortfolioValue">£0.00</p>
+            <span class="card-trend" id="portfolioCount">Portfolio value</span>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Health -->
+<div class="budget-health-section">
+    <div class="health-header">
+        <h3 class="section-title">Budget Health</h3>
+        <span class="health-score-badge" id="healthScoreBadge">—</span>
+    </div>
+    <div class="health-bar-container">
+        <div class="health-bar" id="healthBar">
+            <div class="health-fill" id="healthFill"></div>
+        </div>
+        <div class="health-labels">
+            <span>0%</span>
+            <span id="healthPercent">50%</span>
+            <span>100%</span>
+        </div>
+    </div>
+    <p class="health-status" id="healthStatus">Loading...</p>
+</div>
+
+<!-- Budget Status (populated by dashboard.js) -->
+<div class="dashboard-budget-section" id="dashboardBudgetSection" style="display:none">
+    <div class="dg-header">
+        <h3 class="section-title">🎯 Budget Status</h3>
+        <a class="btn-sm" href="/budgets">Manage →</a>
+    </div>
+    <div id="dashboardBudgetList" class="dash-budget-list"></div>
+    <!-- Cash flow forecast pill -->
+    <div class="dash-forecast-row" id="dashForecastRow"></div>
+</div>
+
+<!-- Savings Goals -->
+<div class="dashboard-goals-section" id="dashboardGoalsSection">
+    <div class="dg-header">
+        <h3 class="section-title">🎯 Savings Goals</h3>
+        <a class="btn-sm" href="/savings">View all →</a>
+    </div>
+    <div id="dashboardGoalsList" class="dashboard-goals-list">
+        <p class="dg-empty">No goals yet — <a class="link-btn" href="/savings">add one in Savings</a></p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-section" style="grid-template-columns: 1fr;">
+    <div class="chart-wrapper">
+        <h3 class="chart-title">Income vs Expenses</h3>
+        <div class="chart-container chart-container--canvas">
+            <canvas id="incomeVsExpenseChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Spending Trend -->
+<div class="chart-wrapper" style="margin-bottom:20px;">
+    <h3 class="chart-title">Expense Breakdown</h3>
+    <div class="chart-container" style="height:250px;">
+        <canvas id="expenseBreakdownChart"></canvas>
+    </div>
+</div>
+
+<!-- Upcoming Bills -->
+<div class="upcoming-bills-section" id="upcomingBillsSection">
+    <h3 class="section-title">📅 Upcoming Bills</h3>
+    <div class="bills-list" id="upcomingBillsList">
+        <p class="bills-empty">No upcoming bills</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

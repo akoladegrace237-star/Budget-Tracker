@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Debt Payoff — Budget Tracker{% endblock %}
+
+{% block extra_head %}
+<script>const CURRENCY = "{{ currency }}";</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🧮 Debt Payoff</h1>
+    <a href="/debt-payoff" class="btn-add" style="text-decoration:none">↺ Reset</a>
+</div>
+
+{% if not debts %}
+<div class="empty-state">
+    <span class="empty-icon">🎉</span>
+    No debts found — add loans or credit cards to use the calculator
+</div>
+{% else %}
+
+<!-- Total debt summary -->
+<div class="forecast-card" style="margin-bottom:18px;">
+    <div class="forecast-grid">
+        <div class="forecast-item">
+            <span class="forecast-label">Total Debt</span>
+            <span class="forecast-value neg" id="totalDebtAmt">{{ currency }}{{ "%.2f"|format(total_debt) }}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Monthly Payment</span>
+            <input id="totalBudgetInput" class="payoff-budget-input" type="number"
+                   min="0" step="10" placeholder="e.g. 500">
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Strategy</span>
+            <div class="strategy-toggle">
+                <button class="strat-btn active" id="btnAvalanche" onclick="selectStrategy('avalanche')">Avalanche</button>
+                <button class="strat-btn"         id="btnSnowball"  onclick="selectStrategy('snowball')">Snowball</button>
+            </div>
+        </div>
+        <div class="forecast-item forecast-balance">
+            <button class="btn-submit" onclick="runCalculator()" style="width:100%;margin:0">Calculate</button>
+        </div>
+    </div>
+    <p class="payoff-hint">
+        <strong>Avalanche</strong> = highest rate first (minimises total interest) ·
+        <strong>Snowball</strong> = lowest balance first (quick wins for motivation)
+    </p>
+</div>
+
+<!-- Payment inputs per debt -->
+<div class="settings-section-label">Your Debts</div>
+<div class="payoff-debt-list" id="debtInputList">
+    {% for d in debts %}
+    <div class="payoff-debt-row"
+         data-name="{{ d.name }}"
+         data-balance="{{ d.balance }}"
+         data-rate="{{ d.rate }}"
+         data-type="{{ d.type }}">
+        <div class="payoff-debt-info">
+            <span class="payoff-debt-name">{{ d.name }}</span>
+            <span class="badge {% if d.type == 'Credit Card' %}danger{% else %}warning{% endif %}">
+                {{ d.type }} · {{ d.rate }}% APR
+            </span>
+        </div>
+        <div class="payoff-debt-right">
+            <span class="payoff-balance neg">{{ currency }}{{ "%.2f"|format(d.balance) }}</span>
+            <div class="payoff-min-wrap">
+                <label class="payoff-min-label">Min payment</label>
+                <input class="payoff-min-input" type="number" min="0" step="1"
+                       placeholder="Min {{ currency }}"
+                       data-key="{{ loop.index0 }}">
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Results -->
+<div id="payoffResults" style="display:none; margin-top:20px;">
+    <div class="settings-section-label" id="resultsTitle">Payoff Plan</div>
+
+    <!-- Summary bar -->
+    <div class="forecast-card" id="payoffSummaryCard">
+        <div class="forecast-grid" id="payoffSummaryGrid"></div>
+    </div>
+
+    <!-- Per-debt schedule -->
+    <div class="payoff-schedule" id="payoffSchedule"></div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Debt data injected from Flask ────────────────────────────────────────────
+const AVALANCHE_ORDER = {{ avalanche | tojson }};
+const SNOWBALL_ORDER  = {{ snowball  | tojson }};
+const ALL_DEBTS       = {{ debts     | tojson }};
+
+let currentStrategy = 'avalanche';
+
+function selectStrategy(s) {
+    currentStrategy = s;
+    document.getElementById('btnAvalanche').classList.toggle('active', s === 'avalanche');
+    document.getElementById('btnSnowball').classList.toggle('active',  s === 'snowball');
+}
+
+function fmt(n) {
+    return CURRENCY + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── Amortization engine ───────────────────────────────────────────────────────
+function amortize(debts, extraBudget) {
+    // Clone debts
+    let pool = debts.map((d, i) => ({
+        ...d,
+        remaining:     d.balance,
+        totalInterest: 0,
+        months:        0,
+        idx:           i,
+    }));
+
+    const minPayments = pool.map(d => {
+        const el = document.querySelector(`.payoff-min-input[data-key="${ALL_DEBTS.findIndex(x => x.name === d.name && x.balance === d.balance)}"]`);
+        return el ? (parseFloat(el.value) || 0) : 0;
+    });
+
+    let totalMonths = 0;
+    const MAX_MONTHS = 600; // 50 years cap
+
+    while (pool.some(d => d.remaining > 0.005) && totalMonths < MAX_MONTHS) {
+        totalMonths++;
+        let leftoverBudget = extraBudget;
+
+        // Apply minimum payments first
+        pool.forEach((d, i) => {
+            if (d.remaining <= 0) return;
+            const monthlyRate = d.rate / 100 / 12;
+            const interest    = d.remaining * monthlyRate;
+            d.totalInterest  += interest;
+            d.remaining      += interest;
+
+            const minPay = minPayments[i];
+            const pay    = Math.min(minPay, d.remaining);
+            d.remaining -= pay;
+            leftoverBudget -= pay;
+            if (d.remaining < 0.005) { d.remaining = 0; d.months = d.months || totalMonths; }
+        });
+
+        // Apply extra budget to priority debt (first in ordered list with remaining > 0)
+        if (leftoverBudget > 0) {
+            const target = pool.find(d => d.remaining > 0);
+            if (target) {
+                const pay = Math.min(leftoverBudget, target.remaining);
+                target.remaining -= pay;
+                if (target.remaining < 0.005) { target.remaining = 0; target.months = totalMonths; }
+            }
+        }
+    }
+
+    // Record final months
+    pool.forEach(d => { if (!d.months && d.remaining <= 0.005) d.months = totalMonths; });
+    return { pool, totalMonths: pool.every(d => d.remaining <= 0) ? totalMonths : null };
+}
+
+function runCalculator() {
+    const budget = parseFloat(document.getElementById('totalBudgetInput').value) || 0;
+    if (budget <= 0) {
+        alert('Please enter a monthly payment budget first.');
+        return;
+    }
+
+    const orderedDebts = currentStrategy === 'avalanche' ? AVALANCHE_ORDER : SNOWBALL_ORDER;
+    const { pool, totalMonths } = amortize(orderedDebts, budget);
+    renderResults(pool, totalMonths, budget);
+}
+
+function renderResults(pool, totalMonths, budget) {
+    const resultDiv = document.getElementById('payoffResults');
+    resultDiv.style.display = '';
+
+    const totalInterest = pool.reduce((s, d) => s + d.totalInterest, 0);
+    const totalPaid     = pool.reduce((s, d) => s + d.totalInterest + d.balance, 0);
+
+    const stratLabel = currentStrategy === 'avalanche'
+        ? '🏔 Avalanche (Highest Rate First)'
+        : '⛄ Snowball (Lowest Balance First)';
+    document.getElementById('resultsTitle').textContent = `Payoff Plan — ${stratLabel}`;
+
+    const grid  = document.getElementById('payoffSummaryGrid');
+    const yrs   = totalMonths ? Math.floor(totalMonths / 12) : '?';
+    const mos   = totalMonths ? totalMonths % 12 : '?';
+    grid.innerHTML = `
+        <div class="forecast-item">
+            <span class="forecast-label">Time to Debt Free</span>
+            <span class="forecast-value">${totalMonths ? `${yrs}y ${mos}m` : 'N/A'}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Total Interest</span>
+            <span class="forecast-value neg">${fmt(totalInterest)}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Total Paid</span>
+            <span class="forecast-value">${fmt(totalPaid)}</span>
+        </div>
+        <div class="forecast-item">
+            <span class="forecast-label">Monthly Budget</span>
+            <span class="forecast-value pos">${fmt(budget)}</span>
+        </div>`;
+
+    const sched = document.getElementById('payoffSchedule');
+    sched.innerHTML = pool.map((d, i) => `
+        <div class="payoff-result-row">
+            <div class="payoff-result-header">
+                <span class="payoff-debt-name">${d.name}</span>
+                <span class="payoff-result-rank">#${i + 1} priority</span>
+            </div>
+            <div class="payoff-result-stats">
+                <div class="payoff-stat">
+                    <span class="payoff-stat-label">Paid off in</span>
+                    <span class="payoff-stat-val">${d.months ? `${d.months} months` : '?'}</span>
+                </div>
+                <div class="payoff-stat">
+                    <span class="payoff-stat-label">Total interest</span>
+                    <span class="payoff-stat-val neg">${fmt(d.totalInterest)}</span>
+                </div>
+                <div class="payoff-stat">
+                    <span class="payoff-stat-label">Total paid</span>
+                    <span class="payoff-stat-val">${fmt(d.totalInterest + d.balance)}</span>
+                </div>
+            </div>
+        </div>`).join('');
+
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

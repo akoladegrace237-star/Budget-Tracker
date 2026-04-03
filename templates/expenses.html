@@ -1,0 +1,117 @@
+﻿{% extends "base.html" %}
+{% block title %}Expenses — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💸 Expenses</h1>
+    <div class="header-actions">
+        <button class="btn-add" onclick="openSheet('addExpenseSheet')">+ Add</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<div class="flash-messages">
+{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
+</div>{% endif %}{% endwith %}
+
+<!-- Budget mini-summary for current month -->
+{% if budget_summary %}
+<div class="budget-mini-card">
+    <div class="budget-mini-header">
+        <span class="budget-mini-title">This Month vs Budget ({{ cur_month }})</span>
+        <a href="/budgets" class="budget-mini-link">Edit limits →</a>
+    </div>
+    {% for cat in budget_summary %}
+    <div class="budget-mini-row">
+        <span class="budget-mini-label">{{ cat.label }}</span>
+        {% if cat.status == 'over' %}
+            <span class="traffic-light tl-red">●</span>
+        {% elif cat.status == 'warning' %}
+            <span class="traffic-light tl-yellow">●</span>
+        {% else %}
+            <span class="traffic-light tl-green">●</span>
+        {% endif %}
+        <div class="budget-bar-track tight">
+            <div class="budget-bar-fill status-{{ cat.status }}"
+                 style="width: {{ [cat.pct, 100]|min }}%"></div>
+        </div>
+        <span class="budget-mini-pct">{{ cat.pct }}%</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Add Expense -->
+<div class="bottom-sheet" id="addExpenseSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header">
+        <h3>Add Expenses</h3>
+        <button class="sheet-close-btn" onclick="closeSheet('addExpenseSheet')">✕</button>
+    </div>
+    <div class="sheet-body">
+        <form method="POST" action="/expenses/add" class="sheet-form">
+            <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Utilities ({{ currency }})</label><input type="number" name="utilities" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Groceries ({{ currency }})</label><input type="number" name="groceries" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Dining Out ({{ currency }})</label><input type="number" name="dining_out" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Transport ({{ currency }})</label><input type="number" name="transport" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Shopping ({{ currency }})</label><input type="number" name="shopping" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Healthcare ({{ currency }})</label><input type="number" name="healthcare" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Entertainment ({{ currency }})</label><input type="number" name="entertainment" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Personal Care ({{ currency }})</label><input type="number" name="personal_care" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="form-group"><label>Other ({{ currency }})</label><input type="number" name="other" step="0.01" min="0" placeholder="0.00"></div>
+            <button type="submit" class="btn-submit">Save Expense Record</button>
+        </form>
+    </div>
+</div>
+
+<!-- Records Table -->
+{% if records %}
+<div class="record-list">
+    {% for r in records %}
+    {% set total = r.utilities + r.groceries + r.dining_out + r.transport + r.shopping + r.healthcare + r.entertainment + r.personal_care + r.other %}
+    <div class="record-card">
+        <div class="record-card-main" onclick="toggleRecord(this)">
+            <div class="record-info">
+                <span class="record-month">{{ r.month }}</span>
+                <span class="record-sub">Expense record</span>
+            </div>
+            <div class="record-right">
+                <span class="record-amount neg">{{ currency }}{{ "%.2f"|format(total) }}</span>
+                <span class="record-chevron">›</span>
+            </div>
+        </div>
+        <div class="record-card-details">
+            {% if r.utilities %}     <div class="detail-row"><span class="dl">Utilities</span>    <span class="dv">{{ currency }}{{ "%.2f"|format(r.utilities) }}</span></div>{% endif %}
+            {% if r.groceries %}     <div class="detail-row"><span class="dl">Groceries</span>    <span class="dv">{{ currency }}{{ "%.2f"|format(r.groceries) }}</span></div>{% endif %}
+            {% if r.dining_out %}    <div class="detail-row"><span class="dl">Dining Out</span>   <span class="dv">{{ currency }}{{ "%.2f"|format(r.dining_out) }}</span></div>{% endif %}
+            {% if r.transport %}     <div class="detail-row"><span class="dl">Transport</span>    <span class="dv">{{ currency }}{{ "%.2f"|format(r.transport) }}</span></div>{% endif %}
+            {% if r.shopping %}      <div class="detail-row"><span class="dl">Shopping</span>     <span class="dv">{{ currency }}{{ "%.2f"|format(r.shopping) }}</span></div>{% endif %}
+            {% if r.healthcare %}    <div class="detail-row"><span class="dl">Healthcare</span>   <span class="dv">{{ currency }}{{ "%.2f"|format(r.healthcare) }}</span></div>{% endif %}
+            {% if r.entertainment %} <div class="detail-row"><span class="dl">Entertainment</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.entertainment) }}</span></div>{% endif %}
+            {% if r.personal_care %} <div class="detail-row"><span class="dl">Personal Care</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.personal_care) }}</span></div>{% endif %}
+            {% if r.other %}         <div class="detail-row"><span class="dl">Other</span>        <span class="dv">{{ currency }}{{ "%.2f"|format(r.other) }}</span></div>{% endif %}
+            <div class="detail-row total"><span class="dl">Total</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
+            <div class="detail-actions">
+                <a href="/expenses/delete/{{ r.id }}" class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">💸</span>
+    No expense records yet — tap <strong>+ Add</strong> to start tracking
+</div>
+{% endif %}
+{% endblock %}
