@@ -97,6 +97,38 @@ def login_required(f):
 
 
 # ─────────────────────────────────────────────
+# DIAGNOSTIC (remove after confirming DB works)
+# ─────────────────────────────────────────────
+
+@app.route("/db-check")
+def db_check():
+    """Temporary diagnostic endpoint — shows DB type and tables."""
+    from db import is_postgres, _get_database_url
+    info = {"db_type": "PostgreSQL" if is_postgres() else "SQLite"}
+    url = _get_database_url()
+    info["has_database_url"] = bool(url)
+    if url:
+        # Show just host portion, hide password
+        info["url_host"] = url.split("@")[-1] if "@" in url else "set-but-unparseable"
+    try:
+        conn = get_db()
+        if is_postgres():
+            rows = conn.execute(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
+            ).fetchall()
+            info["tables"] = [r["table_name"] for r in rows]
+        else:
+            rows = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+            ).fetchall()
+            info["tables"] = [r["name"] for r in rows]
+        conn.close()
+    except Exception as e:
+        info["error"] = str(e)
+    return jsonify(info)
+
+
+# ─────────────────────────────────────────────
 # AUTH ROUTES
 # ─────────────────────────────────────────────
 
