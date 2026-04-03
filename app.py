@@ -261,11 +261,11 @@ def dashboard():
     ).fetchone()[0]
     total_debt = total_credit + total_loans
 
-    # Upcoming recurring bills (unpaid this month only)
+    # Upcoming recurring bills (all, with paid status)
     cur_month = datetime.now().strftime("%Y-%m")
     upcoming_bills = conn.execute(
-        "SELECT * FROM recurring WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?) ORDER BY due_day ASC LIMIT 5",
-        (user_id, cur_month)
+        "SELECT * FROM recurring WHERE user_id=? ORDER BY due_day ASC",
+        (user_id,)
     ).fetchall()
 
     conn.close()
@@ -1007,14 +1007,13 @@ def api_dashboard_data():
         (user_id,)
     ).fetchall()
 
-    # --- upcoming recurring bills (next 7 days by due_day, unpaid only) ---
+    # --- all recurring bills (with paid status for the current month) ---
     cur_month = datetime.now().strftime("%Y-%m")
     today_day = datetime.now().day
     upcoming  = conn.execute(
-        "SELECT name, category, amount, due_day FROM recurring "
-        "WHERE user_id=? AND due_day >= ? AND (last_paid_month IS NULL OR last_paid_month != ?) "
-        "ORDER BY due_day ASC LIMIT 5",
-        (user_id, today_day, cur_month)
+        "SELECT name, category, amount, due_day, last_paid_month FROM recurring "
+        "WHERE user_id=? ORDER BY due_day ASC",
+        (user_id,)
     ).fetchall()
 
     # --- all-time totals ---
@@ -1183,7 +1182,7 @@ def api_dashboard_data():
         "expense_by_month":  [{"month": r["month"], "total": r["total"]} for r in expense_by_month],
         "expense_breakdown": {k: (v or 0) for k, v in dict(expense_breakdown).items()} if expense_breakdown else {},
         "savings_goals":     [{"name": g["name"], "target": g["target"], "saved": g["saved"], "deadline": g["deadline"] or ""} for g in goals],
-        "upcoming_bills":    [{"name": b["name"], "category": b["category"], "amount": b["amount"], "due_day": b["due_day"]} for b in upcoming],
+        "upcoming_bills":    [{"name": b["name"], "category": b["category"], "amount": b["amount"], "due_day": b["due_day"], "paid": (b["last_paid_month"] == cur_month)} for b in upcoming],
         "totals": {
             "income":       round(total_income, 2),
             "expenses":     round(total_expenses, 2),

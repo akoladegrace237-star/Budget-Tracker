@@ -118,19 +118,19 @@ function populateBills(bills) {
     if (!container) return;
 
     if (!bills || bills.length === 0) {
-        container.innerHTML = '<p class="bills-empty">No bills due soon ✓</p>';
+        container.innerHTML = '<p class="bills-empty">No recurring bills set up yet</p>';
         return;
     }
 
     container.innerHTML = bills.map(b => `
-        <div class="bill-item">
+        <div class="bill-item${b.paid ? ' bill-paid' : ''}">
             <div class="bill-left">
                 <span class="bill-name">${b.name}</span>
                 <span class="bill-category badge">${b.category}</span>
             </div>
             <div class="bill-right">
                 <span class="bill-amount">${fmt(b.amount)}</span>
-                <span class="bill-due">Day ${b.due_day}</span>
+                <span class="bill-status ${b.paid ? 'status-paid' : 'status-due'}">${b.paid ? '✅ Paid' : '⚡ Due'}</span>
             </div>
         </div>
     `).join('');
