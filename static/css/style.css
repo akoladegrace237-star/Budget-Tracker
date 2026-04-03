@@ -1233,6 +1233,72 @@ footer {
 .goal-card .detail-actions {
   display: flex; gap: 8px; justify-content: flex-end;
 }
+
+/* ── Bills summary card ─────────────────────────────────── */
+.bills-summary-card {
+  background: var(--bg-card, #fff); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07);
+}
+.bills-summary-row {
+  display: flex; gap: 10px; justify-content: space-between;
+}
+.bills-summary-item {
+  flex: 1; text-align: center;
+}
+.bs-label {
+  display: block; font-size: .72rem; color: var(--text-light, #888);
+  font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  margin-bottom: 2px;
+}
+.bs-value {
+  display: block; font-size: 1.1rem; font-weight: 800;
+}
+.bs-paid  { color: #06C270; }
+.bs-due   { color: #EF4444; }
+
+/* ── Paid/due status badges ─────────────────────────────── */
+.status-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 8px;
+  font-size: .7rem; font-weight: 700; margin-right: 6px;
+}
+.badge-paid { background: rgba(6,194,112,.12); color: #06C270; }
+.badge-due  { background: rgba(239,68,68,.12); color: #EF4444; }
+.record-paid { opacity: .7; }
+.record-paid .record-amount { text-decoration: line-through; }
+
+/* ── Expense summary card ───────────────────────────────── */
+.expense-summary-card {
+  background: var(--bg-card, #fff); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07);
+}
+.es-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.es-month { font-size: .82rem; font-weight: 600; color: var(--text-light, #888); }
+.es-total { font-size: 1.3rem; font-weight: 800; color: var(--primary-color, #4361EE); }
+.es-categories { display: flex; flex-direction: column; gap: 6px; }
+.es-cat-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.es-cat-label { flex: 0 0 90px; font-size: .78rem; font-weight: 600; color: var(--text-color, #333); }
+.es-cat-bar-track {
+  flex: 1; height: 8px; background: var(--bg-body, #f0f0f0);
+  border-radius: 4px; overflow: hidden;
+}
+.es-cat-bar-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #4361EE, #7C3AED);
+}
+.es-cat-val { flex: 0 0 75px; text-align: right; font-size: .78rem; font-weight: 700; }
+
+/* ── Sheet hint text ────────────────────────────────────── */
+.sheet-hint {
+  font-size: .75rem; color: var(--text-light, #888); text-align: center;
+  margin-top: 8px; margin-bottom: 0;
+}
 .settings-section-label {
   font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .06em; color: var(--text-light, #888); margin-bottom: 6px;

@@ -195,17 +195,23 @@ def _init_sqlite(c):
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS recurring (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL,
-            name       TEXT    NOT NULL,
-            category   TEXT    NOT NULL,
-            amount     REAL    NOT NULL,
-            due_day    INTEGER NOT NULL,
-            notes      TEXT,
-            date_added TEXT    DEFAULT CURRENT_TIMESTAMP,
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            name            TEXT    NOT NULL,
+            category        TEXT    NOT NULL,
+            amount          REAL    NOT NULL,
+            due_day         INTEGER NOT NULL,
+            notes           TEXT,
+            last_paid_month TEXT,
+            date_added      TEXT    DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
+    # Migration: add column if table already existed without it
+    try:
+        c.execute("ALTER TABLE recurring ADD COLUMN last_paid_month TEXT")
+    except Exception:
+        pass
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS savings (
@@ -380,16 +386,21 @@ def _init_postgres(c):
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS recurring (
-            id         SERIAL PRIMARY KEY,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            name       TEXT    NOT NULL,
-            category   TEXT    NOT NULL,
-            amount     DOUBLE PRECISION NOT NULL,
-            due_day    INTEGER NOT NULL,
-            notes      TEXT,
-            date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              SERIAL PRIMARY KEY,
+            user_id         INTEGER NOT NULL REFERENCES users(id),
+            name            TEXT    NOT NULL,
+            category        TEXT    NOT NULL,
+            amount          DOUBLE PRECISION NOT NULL,
+            due_day         INTEGER NOT NULL,
+            notes           TEXT,
+            last_paid_month TEXT,
+            date_added      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    try:
+        c.execute("ALTER TABLE recurring ADD COLUMN last_paid_month TEXT")
+    except Exception:
+        pass
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS savings (

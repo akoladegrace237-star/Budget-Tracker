@@ -410,9 +410,24 @@ def expenses():
             })
 
     conn.close()
+
+    # Monthly expense total for the summary card
+    view_month = filter_month or cur_month
+    month_total = 0.0
+    cat_totals = {}
+    for r in records:
+        if r["month"] == view_month:
+            for key, label in EXPENSE_CATEGORIES:
+                val = r[key] or 0.0
+                cat_totals[label] = cat_totals.get(label, 0.0) + val
+                month_total += val
+
     return render_template("expenses.html", records=records,
                            budget_summary=budget_summary, cur_month=cur_month,
-                           months=months, filter_month=filter_month)
+                           months=months, filter_month=filter_month,
+                           month_total=month_total, cat_totals=cat_totals,
+                           view_month=view_month,
+                           expense_categories=EXPENSE_CATEGORIES)
 
 
 @app.route("/expenses/add", methods=["POST"])
@@ -442,6 +457,52 @@ def add_expense():
     return redirect("/expenses")
 
 
+@app.route("/expenses/quick-add", methods=["POST"])
+@login_required
+def quick_add_expense():
+    """Add a single-category expense and also log it as a transaction."""
+    user_id  = get_user_id()
+    category = request.form.get("category", "other")
+    amount   = form_float("amount")
+    note     = request.form.get("note", "").strip()
+    month    = request.form.get("month", datetime.now().strftime("%Y-%m"))
+    if amount <= 0:
+        flash("Amount must be greater than 0", "danger")
+        return redirect("/expenses")
+
+    # Validate category is a real expense column
+    valid_cols = [k for k, _ in EXPENSE_CATEGORIES]
+    col = category if category in valid_cols else "other"
+
+    conn = get_db()
+    # Upsert into expenses table
+    existing = conn.execute(
+        "SELECT id FROM expenses WHERE user_id=? AND month=?",
+        (user_id, month)
+    ).fetchone()
+    if existing:
+        conn.execute(
+            f"UPDATE expenses SET {col} = {col} + ? WHERE id=?",
+            (amount, existing["id"])
+        )
+    else:
+        conn.execute(
+            f"INSERT INTO expenses (user_id, month, {col}) VALUES (?, ?, ?)",
+            (user_id, month, amount)
+        )
+    # Also log as transaction
+    label = dict(EXPENSE_CATEGORIES).get(col, col)
+    conn.execute(
+        "INSERT INTO transactions (user_id, date, type, category, description, amount) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, datetime.now().strftime("%Y-%m-%d"), "expense", col,
+         note or label, amount)
+    )
+    conn.commit()
+    conn.close()
+    flash(f"Added {label} expense: {amount:.2f}", "success")
+    return redirect("/expenses")
+
+
 @app.route("/expenses/delete/<int:record_id>")
 @login_required
 def delete_expense(record_id):
@@ -459,14 +520,19 @@ def delete_expense(record_id):
 @app.route("/recurring")
 @login_required
 def recurring():
-    user_id = get_user_id()
-    conn    = get_db()
-    records = conn.execute(
+    user_id   = get_user_id()
+    cur_month = datetime.now().strftime("%Y-%m")
+    conn      = get_db()
+    records   = conn.execute(
         "SELECT * FROM recurring WHERE user_id=? ORDER BY due_day ASC",
         (user_id,)
     ).fetchall()
+    total_monthly = sum(r["amount"] for r in records)
+    paid_count    = sum(1 for r in records if r["last_paid_month"] == cur_month)
     conn.close()
-    return render_template("recurring.html", records=records)
+    return render_template("recurring.html", records=records,
+                           cur_month=cur_month, total_monthly=total_monthly,
+                           paid_count=paid_count)
 
 
 @app.route("/recurring/add", methods=["POST"])
@@ -1485,7 +1551,7 @@ def edit_recurring(record_id):
 @app.route("/recurring/mark-paid/<int:record_id>")
 @login_required
 def mark_recurring_paid(record_id):
-    """Create an expense entry from a recurring bill for the current month."""
+    """Mark a recurring bill as paid: update last_paid_month, create transaction, upsert expenses."""
     user_id = get_user_id()
     conn = get_db()
     bill = conn.execute("SELECT * FROM recurring WHERE id=? AND user_id=?", (record_id, user_id)).fetchone()
@@ -1499,13 +1565,37 @@ def mark_recurring_paid(record_id):
             "Insurance": "other", "Other": "other",
         }
         col = cat_map.get(bill["category"], "other")
-        # Insert as a transaction too
+
+        # 1. Log as a transaction
         conn.execute(
             "INSERT INTO transactions (user_id, date, type, category, description, amount) VALUES (?, ?, ?, ?, ?, ?)",
             (user_id, datetime.now().strftime("%Y-%m-%d"), "expense", col,
              f"Recurring: {bill['name']}", bill["amount"])
         )
+
+        # 2. Upsert into expenses table so it appears in monthly aggregates
+        existing = conn.execute(
+            "SELECT id FROM expenses WHERE user_id=? AND month=?",
+            (user_id, cur_month)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                f"UPDATE expenses SET {col} = {col} + ? WHERE id=?",
+                (bill["amount"], existing["id"])
+            )
+        else:
+            conn.execute(
+                f"INSERT INTO expenses (user_id, month, {col}) VALUES (?, ?, ?)",
+                (user_id, cur_month, bill["amount"])
+            )
+
+        # 3. Mark as paid this month
+        conn.execute(
+            "UPDATE recurring SET last_paid_month=? WHERE id=?",
+            (cur_month, record_id)
+        )
         conn.commit()
+        flash(f"✅ {bill['name']} marked as paid for {cur_month}", "success")
     conn.close()
     return redirect("/recurring")
 

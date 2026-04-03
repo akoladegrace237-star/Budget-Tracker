@@ -5,7 +5,8 @@
 <div class="page-header">
     <h1>💸 Expenses</h1>
     <div class="header-actions">
-        <button class="btn-add" onclick="openSheet('addExpenseSheet')">+ Add</button>
+        <button class="btn-add secondary" onclick="openSheet('quickAddSheet')">⚡ Quick</button>
+        <button class="btn-add" onclick="openSheet('addExpenseSheet')">+ Bulk</button>
     </div>
 </div>
 
@@ -26,6 +27,27 @@
         {% if filter_month %}<a href="/expenses" class="btn-sm btn-outline">Clear</a>{% endif %}
     </form>
 </div>
+
+<!-- Monthly Total Summary -->
+{% if month_total > 0 %}
+<div class="expense-summary-card">
+    <div class="es-header">
+        <span class="es-month">{{ view_month }}</span>
+        <span class="es-total">{{ currency }}{{ "%.2f"|format(month_total) }}</span>
+    </div>
+    <div class="es-categories">
+        {% for label, val in cat_totals.items() if val > 0 %}
+        <div class="es-cat-row">
+            <span class="es-cat-label">{{ label }}</span>
+            <div class="es-cat-bar-track">
+                <div class="es-cat-bar-fill" style="width:{{ (val / month_total * 100)|round }}%"></div>
+            </div>
+            <span class="es-cat-val">{{ currency }}{{ "%.2f"|format(val) }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Budget mini-summary for current month -->
 {% if budget_summary %}
@@ -112,6 +134,31 @@
             <div class="form-group"><label>Other ({{ currency }})</label><input type="number" name="other" step="0.01" min="0" placeholder="0.00"></div>
             <button type="submit" class="btn-submit">Update Record</button>
         </form>
+    </div>
+</div>
+
+<!-- Bottom Sheet: Quick Add Single Expense -->
+<div class="bottom-sheet" id="quickAddSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>⚡ Quick Add Expense</h3><button class="sheet-close-btn" onclick="closeSheet('quickAddSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/expenses/quick-add" class="sheet-form">
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    {% for key, label in expense_categories %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Amount ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required></div>
+                <div class="form-group"><label>Month</label><input type="month" name="month" value="{{ cur_month }}" required></div>
+            </div>
+            <div class="form-group"><label>Note (optional)</label><input type="text" name="note" placeholder="e.g. Tesco shop, Uber ride…"></div>
+            <button type="submit" class="btn-submit">Add Expense</button>
+        </form>
+        <p class="sheet-hint">This adds to your monthly totals <em>and</em> logs a transaction.</p>
     </div>
 </div>
 
