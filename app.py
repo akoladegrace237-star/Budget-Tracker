@@ -1011,7 +1011,7 @@ def api_dashboard_data():
     cur_month = datetime.now().strftime("%Y-%m")
     today_day = datetime.now().day
     upcoming  = conn.execute(
-        "SELECT name, category, amount, due_day, last_paid_month FROM recurring "
+        "SELECT id, name, category, amount, due_day, last_paid_month FROM recurring "
         "WHERE user_id=? ORDER BY due_day ASC",
         (user_id,)
     ).fetchall()
@@ -1182,7 +1182,7 @@ def api_dashboard_data():
         "expense_by_month":  [{"month": r["month"], "total": r["total"]} for r in expense_by_month],
         "expense_breakdown": {k: (v or 0) for k, v in dict(expense_breakdown).items()} if expense_breakdown else {},
         "savings_goals":     [{"name": g["name"], "target": g["target"], "saved": g["saved"], "deadline": g["deadline"] or ""} for g in goals],
-        "upcoming_bills":    [{"name": b["name"], "category": b["category"], "amount": b["amount"], "due_day": b["due_day"], "paid": (b["last_paid_month"] == cur_month)} for b in upcoming],
+        "upcoming_bills":    [{"id": b["id"], "name": b["name"], "category": b["category"], "amount": b["amount"], "due_day": b["due_day"], "paid": (b["last_paid_month"] == cur_month)} for b in upcoming],
         "totals": {
             "income":       round(total_income, 2),
             "expenses":     round(total_expenses, 2),
@@ -1559,6 +1559,13 @@ def mark_recurring_paid(record_id):
     bill = conn.execute("SELECT * FROM recurring WHERE id=? AND user_id=?", (record_id, user_id)).fetchone()
     if bill:
         cur_month = datetime.now().strftime("%Y-%m")
+
+        # Guard: prevent double-paying the same month
+        if bill["last_paid_month"] == cur_month:
+            flash(f"⚠️ {bill['name']} is already marked as paid for {cur_month}", "info")
+            conn.close()
+            return redirect("/recurring")
+
         # Map recurring category to expense column
         cat_map = {
             "Housing": "utilities", "Utilities": "utilities",

@@ -130,7 +130,10 @@ function populateBills(bills) {
             </div>
             <div class="bill-right">
                 <span class="bill-amount">${fmt(b.amount)}</span>
-                <span class="bill-status ${b.paid ? 'status-paid' : 'status-due'}">${b.paid ? '✅ Paid' : '⚡ Due'}</span>
+                ${b.paid
+                    ? '<span class="bill-status status-paid">✅ Paid</span>'
+                    : `<button class="bill-pay-btn" onclick="markBillPaid(${b.id}, '${b.name}')">Mark Paid</button>`
+                }
             </div>
         </div>
     `).join('');
@@ -352,6 +355,18 @@ async function loadDashboard() {
         buildNetWorthChart(data.net_worth_history || []);
     } catch (err) {
         console.error('Dashboard data fetch failed:', err);
+    }
+}
+
+// ─── Mark bill paid from dashboard ────────────────────────────────────────────
+
+async function markBillPaid(billId, billName) {
+    if (!confirm(`Mark "${billName}" as paid for this month?`)) return;
+    try {
+        await fetch(`/recurring/mark-paid/${billId}`);
+        loadDashboard();   // refresh all dashboard data
+    } catch (err) {
+        console.error('Failed to mark bill paid:', err);
     }
 }
 

@@ -66,10 +66,10 @@
                 {% if not is_paid %}
                 <a href="/recurring/mark-paid/{{ r.id }}" class="btn-paid"
                    onclick="return confirm('Log this bill as paid for {{ cur_month }}?')">✅ Mark Paid</a>
-                {% endif %}
                 <button class="btn-edit" onclick="editRecurring(this)">✏️ Edit</button>
                 <a href="/recurring/delete/{{ r.id }}" class="btn-delete"
                    onclick="return confirmDelete()">🗑 Delete</a>
+                {% endif %}
             </div>
         </div>
     </div>

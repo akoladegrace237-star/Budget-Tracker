@@ -1272,6 +1272,11 @@ footer {
 .bill-status { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
 .status-paid { background: rgba(6,194,112,.12); color: #06C270; }
 .status-due  { background: rgba(239,68,68,.12); color: #EF4444; }
+.bill-pay-btn {
+  font-size: .7rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;
+  background: rgba(99,102,241,.12); color: #6366F1; border: none; cursor: pointer;
+}
+.bill-pay-btn:hover { background: rgba(99,102,241,.22); }
 
 /* ── Expense summary card ───────────────────────────────── */
 .expense-summary-card {
