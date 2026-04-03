@@ -38,6 +38,20 @@ def inject_globals():
     return {'currency': session.get('currency', '£')}
 
 
+# Lazy DB init — retry if startup init_db() failed (e.g. DNS not ready yet)
+_db_ready = False
+
+@app.before_request
+def ensure_db():
+    global _db_ready
+    if not _db_ready:
+        try:
+            init_db()
+            _db_ready = True
+        except Exception:
+            pass  # Will try again on next request
+
+
 # Serve root-level static assets (original styles.css, icons/, etc.)
 @app.route('/styles.css')
 def serve_root_css():
@@ -1260,7 +1274,10 @@ def debt_payoff():
 # ─────────────────────────────────────────────
 
 # Always create tables on startup (works with both gunicorn and python app.py)
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[WARN] DB init failed, will retry on first request: {e}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
