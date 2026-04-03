@@ -9,17 +9,20 @@ Otherwise, falls back to SQLite.
 import os
 import sqlite3
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-# ─── PostgreSQL helpers ───────────────────────
-
-if DATABASE_URL:
+try:
     import psycopg2
     import psycopg2.extras
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
 
-    # Railway sometimes gives postgres:// but psycopg2 needs postgresql://
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+def _get_database_url():
+    """Read DATABASE_URL at call time (not import time) so Railway vars are available."""
+    url = os.environ.get("DATABASE_URL", "")
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
 
 
 class PgRowWrapper:
@@ -105,8 +108,9 @@ class PgConnectionWrapper:
 
 def get_db():
     """Return a DB connection (PostgreSQL or SQLite)."""
-    if DATABASE_URL:
-        conn = psycopg2.connect(DATABASE_URL)
+    url = _get_database_url()
+    if url and HAS_PSYCOPG2:
+        conn = psycopg2.connect(url)
         return PgConnectionWrapper(conn)
     else:
         conn = sqlite3.connect("database.db")
@@ -115,22 +119,28 @@ def get_db():
 
 
 def is_postgres():
-    return bool(DATABASE_URL)
+    return bool(_get_database_url() and HAS_PSYCOPG2)
 
 
 def init_db():
     """Create all tables if they don't yet exist."""
-    conn = get_db()
-    c = conn.cursor()
+    try:
+        conn = get_db()
+        c = conn.cursor()
 
-    if is_postgres():
-        _init_postgres(c)
-    else:
-        _init_sqlite(c)
+        if is_postgres():
+            print("[DB] Using PostgreSQL:", _get_database_url()[:30] + "...")
+            _init_postgres(c)
+        else:
+            print("[DB] Using SQLite: database.db")
+            _init_sqlite(c)
 
-    conn.commit()
-    conn.close()
-    print("[OK] Database initialized successfully.")
+        conn.commit()
+        conn.close()
+        print("[OK] Database initialized successfully.")
+    except Exception as e:
+        print(f"[ERROR] Database initialization failed: {e}")
+        raise
 
 
 def _init_sqlite(c):
