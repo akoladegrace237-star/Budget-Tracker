@@ -124,17 +124,22 @@ def index():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"].strip()
-        password = request.form["password"]
+        username        = request.form["username"].strip()
+        pin             = request.form["pin"].strip()
+        security_answer = request.form.get("security_answer", "").strip().lower()
 
-        if not username or not password:
+        if not username or not pin:
             return render_template("register.html", error="All fields are required.")
+        if not pin.isdigit() or len(pin) != 4:
+            return render_template("register.html", error="PIN must be exactly 4 digits.")
+        if not security_answer:
+            return render_template("register.html", error="Security answer is required for PIN recovery.")
 
         conn = get_db()
         try:
             conn.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (username, hash_password(password))
+                "INSERT INTO users (username, password, security_answer) VALUES (?, ?, ?)",
+                (username, hash_password(pin), hash_password(security_answer))
             )
             conn.commit()
             return redirect("/login")
@@ -150,12 +155,13 @@ def register():
 def login():
     if request.method == "POST":
         username = request.form["username"].strip()
-        password = request.form["password"]
+        pin      = request.form["pin"].strip()
+        remember = request.form.get("remember")
 
         conn = get_db()
         user = conn.execute(
             "SELECT * FROM users WHERE username = ? AND password = ?",
-            (username, hash_password(password))
+            (username, hash_password(pin))
         ).fetchone()
         conn.close()
 
@@ -163,17 +169,51 @@ def login():
             session["user_id"]  = user["id"]
             session["username"] = user["username"]
             session["currency"] = user["currency"] or "£"
-            return redirect("/dashboard")
+            resp = redirect("/dashboard")
+            if remember:
+                resp.set_cookie("remembered_user", username, max_age=60*60*24*365)
+            else:
+                resp.delete_cookie("remembered_user")
+            return resp
         else:
-            return render_template("login.html", error="Invalid username or password.")
+            return render_template("login.html", error="Invalid username or PIN.",
+                                   remembered_user=request.cookies.get("remembered_user", ""))
 
-    return render_template("login.html")
+    return render_template("login.html",
+                           remembered_user=request.cookies.get("remembered_user", ""))
 
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
+
+
+@app.route("/forgot-pin", methods=["GET", "POST"])
+def forgot_pin():
+    if request.method == "POST":
+        username        = request.form["username"].strip()
+        security_answer = request.form["security_answer"].strip().lower()
+        new_pin         = request.form["new_pin"].strip()
+        confirm_pin     = request.form["confirm_pin"].strip()
+
+        if not (new_pin.isdigit() and len(new_pin) == 4):
+            return render_template("forgot_pin.html", error="PIN must be exactly 4 digits.")
+        if new_pin != confirm_pin:
+            return render_template("forgot_pin.html", error="PINs do not match.")
+
+        conn = get_db()
+        user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        if not user or user["security_answer"] != hash_password(security_answer):
+            conn.close()
+            return render_template("forgot_pin.html", error="Username or security answer is incorrect.")
+
+        conn.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(new_pin), user["id"]))
+        conn.commit()
+        conn.close()
+        return redirect("/login")
+
+    return render_template("forgot_pin.html")
 
 
 # ─────────────────────────────────────────────
@@ -1095,7 +1135,7 @@ def settings():
             if user_row["password"] != hash_password(current_pw):
                 conn.close()
                 return redirect("/settings?error=wrong_password")
-            if new_pw != confirm_pw or len(new_pw) < 4:
+            if new_pw != confirm_pw or not (new_pw.isdigit() and len(new_pw) == 4):
                 conn.close()
                 return redirect("/settings?error=password_mismatch")
 

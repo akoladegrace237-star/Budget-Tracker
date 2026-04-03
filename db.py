@@ -148,11 +148,12 @@ def _init_sqlite(c):
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT    UNIQUE NOT NULL,
-            password TEXT    NOT NULL,
-            currency TEXT    DEFAULT '£',
-            created  TEXT    DEFAULT CURRENT_TIMESTAMP
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            username        TEXT    UNIQUE NOT NULL,
+            password        TEXT    NOT NULL,
+            currency        TEXT    DEFAULT '£',
+            security_answer TEXT    DEFAULT '',
+            created         TEXT    DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
@@ -334,11 +335,12 @@ def _init_postgres(c):
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id       SERIAL PRIMARY KEY,
-            username TEXT   UNIQUE NOT NULL,
-            password TEXT   NOT NULL,
-            currency TEXT   DEFAULT '£',
-            created  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              SERIAL PRIMARY KEY,
+            username        TEXT   UNIQUE NOT NULL,
+            password        TEXT   NOT NULL,
+            currency        TEXT   DEFAULT '£',
+            security_answer TEXT   DEFAULT '',
+            created         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 

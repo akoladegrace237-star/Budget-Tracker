@@ -88,32 +88,32 @@
     </div>
 </form>
 
-<!-- ── Change Password ── -->
+<!-- ── Change PIN ── -->
 <form method="POST" action="/settings">
     <input type="hidden" name="action" value="password">
     <div class="settings-section">
-        <div class="settings-section-label">🔑 Change Password</div>
+        <div class="settings-section-label">🔑 Change PIN</div>
         {% if request.args.get('error') == 'wrong_password' %}
-        <div class="alert alert-danger">Current password is incorrect.</div>
+        <div class="alert alert-danger">Current PIN is incorrect.</div>
         {% elif request.args.get('error') == 'password_mismatch' %}
-        <div class="alert alert-danger">New passwords don't match or are too short (min 4 chars).</div>
+        <div class="alert alert-danger">New PINs don't match or are not 4 digits.</div>
         {% endif %}
         <div class="form-grid-2col">
             <div class="form-group">
-                <label for="current_password">Current Password</label>
-                <input type="password" id="current_password" name="current_password" required placeholder="••••••••">
+                <label for="current_password">Current PIN</label>
+                <input type="password" id="current_password" name="current_password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="••••">
             </div>
             <div class="form-group"></div>
             <div class="form-group">
-                <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" required minlength="4" placeholder="••••••••">
+                <label for="new_password">New PIN</label>
+                <input type="password" id="new_password" name="new_password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="••••">
             </div>
             <div class="form-group">
-                <label for="confirm_password">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required minlength="4" placeholder="••••••••">
+                <label for="confirm_password">Confirm New PIN</label>
+                <input type="password" id="confirm_password" name="confirm_password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="••••">
             </div>
         </div>
-        <button type="submit" class="btn-submit settings-save">Update Password</button>
+        <button type="submit" class="btn-submit settings-save">Update PIN</button>
     </div>
 </form>
 
