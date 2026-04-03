@@ -20,7 +20,7 @@
     <div class="nw-label">Total Net Worth</div>
     <div class="nw-amount" id="netWorthAmount">£0.00</div>
     <div class="nw-meta">
-        <span class="nw-sub">Assets − Liabilities</span>
+        <span class="nw-sub">Everything you own minus everything you owe</span>
     </div>
 </div>
 
@@ -35,27 +35,25 @@
     <div class="card income-card">
         <div class="card-icon">💰</div>
         <div class="card-content">
-            <h3>Total Income</h3>
+            <h3>Income</h3>
             <p class="amount" id="totalIncome">£0.00</p>
-            <span class="card-trend positive">All time</span>
             <div class="card-month-row">
                 <span class="card-month-tag">This month</span>
                 <span class="card-month-val positive" id="monthIncome">£0.00</span>
             </div>
-            <div class="card-balance-row">
-                <span class="card-month-tag">Balance</span>
+            <div class="card-balance-row" id="monthBalanceRow">
+                <span class="card-month-tag">Left over</span>
                 <span class="card-month-val" id="monthBalance">£0.00</span>
             </div>
         </div>
     </div>
     <div class="card expense-card">
-        <div class="card-icon">💳</div>
+        <div class="card-icon">💸</div>
         <div class="card-content">
-            <h3>Total Expenses</h3>
+            <h3>Spending</h3>
             <p class="amount" id="totalExpenses">£0.00</p>
-            <span class="card-trend">All time</span>
             <div class="card-month-row">
-                <span class="card-month-tag">This month<br><small>incl. bills</small></span>
+                <span class="card-month-tag">This month</span>
                 <span class="card-month-val danger" id="monthExpense">£0.00</span>
             </div>
         </div>
@@ -63,41 +61,20 @@
     <div class="card saving-card">
         <div class="card-icon">🏦</div>
         <div class="card-content">
-            <h3>Gross Savings</h3>
-            <p class="amount" id="grossSavings">£0.00</p>
-            <span class="card-trend">Available</span>
-        </div>
-    </div>
-    <div class="card investment-card">
-        <div class="card-icon">📈</div>
-        <div class="card-content">
-            <h3>Investments</h3>
-            <p class="amount" id="totalInvestments">£0.00</p>
-            <span class="card-trend">Portfolio</span>
-        </div>
-    </div>
-    <div class="card net-card">
-        <div class="card-icon">✨</div>
-        <div class="card-content">
-            <h3>Net Savings</h3>
-            <p class="amount" id="netSavings">£0.00</p>
-            <span class="card-trend">After investments</span>
-        </div>
-    </div>
-    <div class="card rate-card">
-        <div class="card-icon">📊</div>
-        <div class="card-content">
-            <h3>Savings Rate</h3>
-            <p class="amount" id="savingsRate">0%</p>
-            <span class="card-trend">Target: 20%</span>
+            <h3>Savings</h3>
+            <p class="amount" id="totalSavings">£0.00</p>
+            <div class="card-month-row">
+                <span class="card-month-tag">Invested</span>
+                <span class="card-month-val" id="totalInvestments">£0.00</span>
+            </div>
         </div>
     </div>
     <div class="card debt-card">
-        <div class="card-icon">💳</div>
+        <div class="card-icon">🔻</div>
         <div class="card-content">
-            <h3>Total Debt</h3>
+            <h3>Debt</h3>
             <p class="amount" id="totalDebt">£0.00</p>
-            <span class="card-trend" id="debtBreakdown">Credit + Loans</span>
+            <span class="card-trend" id="debtBreakdown">Credit cards + Loans</span>
         </div>
     </div>
     <div class="card investment-card">
@@ -105,7 +82,7 @@
         <div class="card-content">
             <h3>Portfolio</h3>
             <p class="amount" id="totalPortfolioValue">£0.00</p>
-            <span class="card-trend" id="portfolioCount">Portfolio value</span>
+            <span class="card-trend" id="portfolioCount">Stocks &amp; assets</span>
         </div>
     </div>
 </div>
@@ -120,13 +97,9 @@
         <div class="health-bar" id="healthBar">
             <div class="health-fill" id="healthFill"></div>
         </div>
-        <div class="health-labels">
-            <span>0%</span>
-            <span id="healthPercent">50%</span>
-            <span>100%</span>
-        </div>
     </div>
     <p class="health-status" id="healthStatus">Loading...</p>
+    <p class="health-explainer">Based on how much you save, spend within budget, and manage debt.</p>
 </div>
 
 <!-- Budget Status (populated by dashboard.js) -->

@@ -1299,6 +1299,12 @@ footer {
   font-size: .75rem; color: var(--text-light, #888); text-align: center;
   margin-top: 8px; margin-bottom: 0;
 }
+
+/* ── Health explainer ───────────────────────────────────── */
+.health-explainer {
+  font-size: .73rem; color: var(--text-light, #999);
+  text-align: center; margin-top: 4px;
+}
 .settings-section-label {
   font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .06em; color: var(--text-light, #888); margin-bottom: 6px;

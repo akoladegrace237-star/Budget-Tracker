@@ -32,29 +32,28 @@ function populateCards(data) {
     setText('netWorthAmount',          fmt(t.net_worth));
     setText('totalIncome',             fmt(t.income));
     setText('totalExpenses',           fmt(t.expenses));
-    setText('grossSavings',            fmt(t.savings));
+    setText('totalSavings',            fmt(t.savings));
     setText('totalInvestments',        fmt(t.investments));
-    setText('netSavings',              fmt(t.net_savings));
-    setText('savingsRate',             t.savings_rate + '%');
     setText('totalDebt',               fmt(t.debt));
     setText('totalPortfolioValue',     fmt(t.portfolio));
 
     // This month income vs expense
     const cm = data.current_month;
-    setText('currentMonthExpenditure', fmt(cm.expense));
-    setText('currentMonthLabel',       cm.month + ' expenses');
-    // Inline month figures on income / expense cards
-    const monthName = new Date(cm.month + '-02').toLocaleString('en-GB', { month: 'short', year: '2-digit' });
     setText('monthIncome',  fmt(cm.income));
     setText('monthExpense', fmt(cm.expense));
-    // Balance row on income card
-    const bal    = cm.balance;
-    const balEl  = document.getElementById('monthBalance');
-    const balRow = document.getElementById('monthBalanceRow');
-    if (balEl && balRow) {
-        const sign = bal >= 0 ? '+' : '';
-        balEl.textContent = '(' + sign + fmt(bal) + ')';
+
+    // Left-over row on income card
+    const bal   = cm.balance;
+    const balEl = document.getElementById('monthBalance');
+    if (balEl) {
+        balEl.textContent = fmt(Math.abs(bal));
         balEl.className   = 'card-month-val ' + (bal >= 0 ? 'positive' : 'danger');
+        // Update label
+        const row = document.getElementById('monthBalanceRow');
+        if (row) {
+            const label = row.querySelector('.card-month-tag');
+            if (label) label.textContent = bal >= 0 ? 'Left over' : 'Over budget';
+        }
     }
 }
 
