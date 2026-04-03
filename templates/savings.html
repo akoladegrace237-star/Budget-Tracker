@@ -23,7 +23,8 @@
         <div class="goals-grid">
             {% for g in goals %}
             {% set pct = [(g.saved / g.target * 100), 100]|min if g.target > 0 else 0 %}
-            <div class="goal-card">
+            <div class="goal-card" data-id="{{ g.id }}" data-name="{{ g.name }}"
+                 data-target="{{ g.target }}" data-saved="{{ g.saved }}" data-deadline="{{ g.deadline or '' }}">
                 <div class="goal-header">
                     <span class="goal-name">{{ g.name }}</span>
                     {% if g.deadline %}<span class="goal-deadline">🗓 {{ g.deadline }}</span>{% endif %}
@@ -36,6 +37,11 @@
                     <span>{{ currency }}{{ "%.2f"|format(g.target) }} target</span>
                 </div>
                 <div class="goal-pct">{{ "%.1f"|format(pct) }}% complete</div>
+                <div class="detail-actions" style="margin-top:8px;">
+                    <button class="btn-edit" onclick="editGoal(this)">✏️ Edit</button>
+                    <a href="/savings/goal/delete/{{ g.id }}" class="btn-delete"
+                       onclick="return confirmDelete('Delete this goal?')">🗑 Delete</a>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -47,7 +53,9 @@
 {% if records %}
 <div class="record-list">
     {% for r in records %}
-    <div class="record-card">
+    <div class="record-card" data-id="{{ r.id }}" data-month="{{ r.month }}"
+         data-amount="{{ r.amount }}" data-investment="{{ r.investment }}"
+         data-type="{{ r.type or '' }}" data-notes="{{ r.notes or '' }}">
         <div class="record-card-main" onclick="toggleRecord(this)">
             <div class="record-info">
                 <span class="record-month">{{ r.month }}</span>
@@ -63,6 +71,11 @@
             <div class="detail-row"><span class="dl">Invested</span>  <span class="dv">{{ currency }}{{ "%.2f"|format(r.investment) }}</span></div>
             {% if r.type    %}<div class="detail-row"><span class="dl">Type</span>      <span class="dv">{{ r.type }}</span></div>{% endif %}
             {% if r.notes   %}<div class="detail-row"><span class="dl">Notes</span>     <span class="dv">{{ r.notes }}</span></div>{% endif %}
+            <div class="detail-actions">
+                <button class="btn-edit" onclick="editSavings(this)">✏️ Edit</button>
+                <a href="/savings/delete/{{ r.id }}" class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</a>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -116,138 +129,73 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
-<!-- Add Savings Form -->
-<div id="addSavingsForm" class="card collapse-form" style="display:none;">
-    <div class="card-header"><h2>Add Savings Record</h2></div>
-    <div class="card-body">
-        <form method="POST" action="/savings/add" class="grid-form">
-            <div class="form-group">
-                <label>Month</label>
-                <input type="month" name="month" required>
-            </div>
-            <div class="form-group">
-                <label>Saved Amount ({{ currency }})</label>
-                <input type="number" name="amount" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Investment Amount ({{ currency }})</label>
-                <input type="number" name="investment" step="0.01" min="0" placeholder="0.00">
+<!-- Bottom Sheet: Edit Savings -->
+<div class="bottom-sheet" id="editSavingsSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Savings Record</h3><button class="sheet-close-btn" onclick="closeSheet('editSavingsSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editSavingsForm" class="sheet-form">
+            <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Saved ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0"></div>
+                <div class="form-group"><label>Invested ({{ currency }})</label><input type="number" name="investment" step="0.01" min="0"></div>
             </div>
             <div class="form-group">
                 <label>Type</label>
                 <select name="type">
                     <option value="">Select type</option>
-                    <option value="ISA">ISA</option>
-                    <option value="Pension">Pension</option>
-                    <option value="Stocks">Stocks</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Crypto">Crypto</option>
-                    <option value="Other">Other</option>
+                    <option>ISA</option><option>Pension</option>
+                    <option>Stocks</option><option>Cash</option>
+                    <option>Crypto</option><option>Other</option>
                 </select>
             </div>
-            <div class="form-group form-group-wide">
-                <label>Notes</label>
-                <input type="text" name="notes" placeholder="Optional notes">
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Record</button>
-                <button type="button" class="btn btn-outline" onclick="toggleForm('addSavingsForm')">Cancel</button>
-            </div>
+            <div class="form-group"><label>Notes</label><input type="text" name="notes"></div>
+            <button type="submit" class="btn-submit">Update Record</button>
         </form>
     </div>
 </div>
 
-<!-- Add Goal Form -->
-<div id="addGoalForm" class="card collapse-form" style="display:none;">
-    <div class="card-header"><h2>Add Savings Goal</h2></div>
-    <div class="card-body">
-        <form method="POST" action="/savings/goal/add" class="grid-form">
-            <div class="form-group">
-                <label>Goal Name</label>
-                <input type="text" name="name" placeholder="e.g. Emergency Fund" required>
+<!-- Bottom Sheet: Edit Goal -->
+<div class="bottom-sheet" id="editGoalSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Savings Goal</h3><button class="sheet-close-btn" onclick="closeSheet('editGoalSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editGoalForm" class="sheet-form">
+            <div class="form-group"><label>Goal Name</label><input type="text" name="name" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Target ({{ currency }})</label><input type="number" name="target" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Saved So Far ({{ currency }})</label><input type="number" name="saved" step="0.01" min="0"></div>
             </div>
-            <div class="form-group">
-                <label>Target Amount ({{ currency }})</label>
-                <input type="number" name="target" step="0.01" min="0" placeholder="0.00" required>
-            </div>
-            <div class="form-group">
-                <label>Saved So Far ({{ currency }})</label>
-                <input type="number" name="saved" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>Deadline</label>
-                <input type="date" name="deadline">
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Goal</button>
-                <button type="button" class="btn btn-outline" onclick="toggleForm('addGoalForm')">Cancel</button>
-            </div>
+            <div class="form-group"><label>Deadline</label><input type="date" name="deadline"></div>
+            <button type="submit" class="btn-submit">Update Goal</button>
         </form>
     </div>
 </div>
+{% endblock %}
 
-<!-- Savings Goals -->
-{% if goals %}
-<div class="card">
-    <div class="card-header"><h2>Savings Goals</h2></div>
-    <div class="card-body">
-        <div class="goals-grid">
-            {% for g in goals %}
-            {% set pct = [(g.saved / g.target * 100), 100]|min if g.target > 0 else 0 %}
-            <div class="goal-card">
-                <div class="goal-header">
-                    <span class="goal-name">{{ g.name }}</span>
-                    {% if g.deadline %}<span class="goal-deadline">🗓 {{ g.deadline }}</span>{% endif %}
-                </div>
-                <div class="goal-progress-bar">
-                    <div class="goal-progress-fill" style="width: {{ pct }}%"></div>
-                </div>
-                <div class="goal-amounts">
-                    <span>{{ currency }}{{ "%.2f"|format(g.saved) }} saved</span>
-                    <span>{{ currency }}{{ "%.2f"|format(g.target) }} target</span>
-                </div>
-                <div class="goal-pct">{{ "%.1f"|format(pct) }}% complete</div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Savings Records -->
-<div class="card">
-    <div class="card-header"><h2>Savings Records</h2></div>
-    <div class="card-body">
-        {% if records %}
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Month</th>
-                        <th>Saved ({{ currency }})</th>
-                        <th>Investment ({{ currency }})</th>
-                        <th>Type</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for r in records %}
-                    <tr>
-                        <td><strong>{{ r.month }}</strong></td>
-                        <td>{{ currency }}{{ "%.2f"|format(r.amount) }}</td>
-                        <td>{{ currency }}{{ "%.2f"|format(r.investment) }}</td>
-                        <td>{{ r.type or '—' }}</td>
-                        <td>{{ r.notes or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-            <p class="empty-state">No savings records yet. Add your first record above.</p>
-        {% endif %}
-    </div>
-</div>
+{% block extra_scripts %}
+<script>
+function editSavings(btn) {
+    const card = btn.closest('.record-card');
+    const form = document.getElementById('editSavingsForm');
+    form.action = '/savings/edit/' + card.dataset.id;
+    form.month.value = card.dataset.month;
+    form.amount.value = card.dataset.amount || '';
+    form.investment.value = card.dataset.investment || '';
+    form.type.value = card.dataset.type || '';
+    form.notes.value = card.dataset.notes || '';
+    openSheet('editSavingsSheet');
+}
+function editGoal(btn) {
+    const card = btn.closest('.goal-card');
+    const form = document.getElementById('editGoalForm');
+    form.action = '/savings/goal/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.target.value = card.dataset.target;
+    form.saved.value = card.dataset.saved;
+    form.deadline.value = card.dataset.deadline || '';
+    openSheet('editGoalSheet');
+}
+</script>
 {% endblock %}

@@ -291,12 +291,23 @@ def dashboard():
 def income():
     user_id = get_user_id()
     conn    = get_db()
-    records = conn.execute(
-        "SELECT * FROM income WHERE user_id=? ORDER BY month DESC",
-        (user_id,)
-    ).fetchall()
+    filter_month = request.args.get("month", "")
+    if filter_month:
+        records = conn.execute(
+            "SELECT * FROM income WHERE user_id=? AND month=? ORDER BY month DESC",
+            (user_id, filter_month)
+        ).fetchall()
+    else:
+        records = conn.execute(
+            "SELECT * FROM income WHERE user_id=? ORDER BY month DESC",
+            (user_id,)
+        ).fetchall()
+    months = [r["month"] for r in conn.execute(
+        "SELECT DISTINCT month FROM income WHERE user_id=? ORDER BY month DESC", (user_id,)
+    ).fetchall()]
     conn.close()
-    return render_template("income.html", records=records)
+    return render_template("income.html", records=records,
+                           months=months, filter_month=filter_month)
 
 
 @app.route("/income/add", methods=["POST"])
@@ -344,10 +355,20 @@ def expenses():
     user_id   = get_user_id()
     cur_month = datetime.now().strftime("%Y-%m")
     conn      = get_db()
-    records   = conn.execute(
-        "SELECT * FROM expenses WHERE user_id=? ORDER BY month DESC",
-        (user_id,)
-    ).fetchall()
+    filter_month = request.args.get("month", "")
+    if filter_month:
+        records = conn.execute(
+            "SELECT * FROM expenses WHERE user_id=? AND month=? ORDER BY month DESC",
+            (user_id, filter_month)
+        ).fetchall()
+    else:
+        records = conn.execute(
+            "SELECT * FROM expenses WHERE user_id=? ORDER BY month DESC",
+            (user_id,)
+        ).fetchall()
+    months = [r["month"] for r in conn.execute(
+        "SELECT DISTINCT month FROM expenses WHERE user_id=? ORDER BY month DESC", (user_id,)
+    ).fetchall()]
 
     # Budget mini-summary for current month
     limits_raw = conn.execute(
@@ -390,7 +411,8 @@ def expenses():
 
     conn.close()
     return render_template("expenses.html", records=records,
-                           budget_summary=budget_summary, cur_month=cur_month)
+                           budget_summary=budget_summary, cur_month=cur_month,
+                           months=months, filter_month=filter_month)
 
 
 @app.route("/expenses/add", methods=["POST"])
@@ -583,11 +605,11 @@ def pay_credit():
     amount  = form_float("amount")
     user_id = get_user_id()
     conn    = get_db()
-    conn.execute(
-        "UPDATE credit_cards SET balance = MAX(0, balance - ?) WHERE id=? AND user_id=?",
-        (amount, card_id, user_id)
-    )
-    conn.commit()
+    card = conn.execute("SELECT balance FROM credit_cards WHERE id=? AND user_id=?", (card_id, user_id)).fetchone()
+    if card:
+        new_bal = max(0, card["balance"] - amount)
+        conn.execute("UPDATE credit_cards SET balance=? WHERE id=? AND user_id=?", (new_bal, card_id, user_id))
+        conn.commit()
     conn.close()
     return redirect("/credit")
 
@@ -645,11 +667,11 @@ def pay_loan():
     amount  = form_float("amount")
     user_id = get_user_id()
     conn    = get_db()
-    conn.execute(
-        "UPDATE loans SET balance = MAX(0, balance - ?) WHERE id=? AND user_id=?",
-        (amount, loan_id, user_id)
-    )
-    conn.commit()
+    loan = conn.execute("SELECT balance FROM loans WHERE id=? AND user_id=?", (loan_id, user_id)).fetchone()
+    if loan:
+        new_bal = max(0, loan["balance"] - amount)
+        conn.execute("UPDATE loans SET balance=? WHERE id=? AND user_id=?", (new_bal, loan_id, user_id))
+        conn.commit()
     conn.close()
     return redirect("/loans")
 
@@ -691,11 +713,20 @@ def projections():
     expense_labels = [r["month"] for r in expense_data]
     expense_values = [r["total"] for r in expense_data]
 
+    # Net worth history
+    nw_data = conn.execute(
+        "SELECT month, net_worth, health_score FROM net_worth_history WHERE user_id=? ORDER BY month ASC",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+
     return render_template("projections.html",
         income_labels  = income_labels,
         income_values  = income_values,
         expense_labels = expense_labels,
         expense_values = expense_values,
+        nw_labels      = [r["month"] for r in nw_data],
+        nw_values      = [r["net_worth"] for r in nw_data],
     )
 
 
@@ -1036,6 +1067,45 @@ def api_dashboard_data():
     ) if cur_exp_row else 0.0
     forecast_balance = round(cur_income - recurring_total_cf - cur_exp_total, 2)
 
+    # --- auto-snapshot net worth for current month ---
+    try:
+        conn.execute(
+            "INSERT INTO net_worth_history (user_id, month, total_income, total_expenses, total_savings, total_debt, net_worth, health_score) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(user_id, month) DO UPDATE SET "
+            "total_income=excluded.total_income, total_expenses=excluded.total_expenses, "
+            "total_savings=excluded.total_savings, total_debt=excluded.total_debt, "
+            "net_worth=excluded.net_worth, health_score=excluded.health_score",
+            (user_id, cur_month, round(total_income, 2), round(total_expenses, 2),
+             round(gross_savings_derived, 2), round(total_debt, 2), round(net_worth, 2), health_score)
+        )
+        conn.commit()
+    except Exception:
+        pass
+
+    # --- net worth history (for trend chart) ---
+    nw_history = conn.execute(
+        "SELECT month, net_worth FROM net_worth_history WHERE user_id=? ORDER BY month ASC",
+        (user_id,)
+    ).fetchall()
+
+    # --- bill due-date alerts (due within 5 days) ---
+    from calendar import monthrange
+    today = datetime.now()
+    today_day = today.day
+    days_in_month = monthrange(today.year, today.month)[1]
+    bill_alerts = []
+    all_bills = conn.execute(
+        "SELECT name, amount, due_day FROM recurring WHERE user_id=?", (user_id,)
+    ).fetchall()
+    for b in all_bills:
+        diff = b["due_day"] - today_day
+        if diff < 0:
+            diff += days_in_month
+        if diff <= 5:
+            bill_alerts.append({"name": b["name"], "amount": b["amount"],
+                                "due_day": b["due_day"], "days_until": diff})
+
     conn.close()
 
     return jsonify({
@@ -1075,6 +1145,8 @@ def api_dashboard_data():
             "spent":     round(cur_exp_total, 2),
             "balance":   forecast_balance,
         },
+        "net_worth_history": [{"month": r["month"], "net_worth": r["net_worth"]} for r in nw_history],
+        "bill_alerts": bill_alerts,
     })
 
 
@@ -1275,6 +1347,258 @@ def debt_payoff():
                            avalanche=avalanche,
                            snowball=snowball,
                            total_debt=round(total_debt, 2))
+
+
+# ─────────────────────────────────────────────
+# TRANSACTIONS LOG
+# ─────────────────────────────────────────────
+
+TRANSACTION_CATEGORIES = [
+    ("salary", "Salary"), ("bonus", "Bonus"), ("side_income", "Side Income"),
+    ("rental", "Rental"), ("dividends", "Dividends"), ("gifts", "Gifts"),
+    ("utilities", "Utilities"), ("groceries", "Groceries"), ("dining_out", "Dining Out"),
+    ("transport", "Transport"), ("shopping", "Shopping"), ("healthcare", "Healthcare"),
+    ("entertainment", "Entertainment"), ("personal_care", "Personal Care"),
+    ("subscriptions", "Subscriptions"), ("other", "Other"),
+]
+
+
+@app.route("/transactions")
+@login_required
+def transactions():
+    user_id = get_user_id()
+    conn = get_db()
+    filter_month = request.args.get("month", "")
+    filter_type = request.args.get("type", "")
+    query = "SELECT * FROM transactions WHERE user_id=?"
+    params = [user_id]
+    if filter_month:
+        query += " AND date LIKE ?"
+        params.append(filter_month + "%")
+    if filter_type:
+        query += " AND type=?"
+        params.append(filter_type)
+    query += " ORDER BY date DESC"
+    records = conn.execute(query, params).fetchall()
+    months = [r["month"] for r in conn.execute(
+        "SELECT DISTINCT substr(date, 1, 7) as month FROM transactions WHERE user_id=? ORDER BY month DESC", (user_id,)
+    ).fetchall()]
+    # Totals
+    total_in = sum(r["amount"] for r in records if r["type"] == "income")
+    total_out = sum(r["amount"] for r in records if r["type"] == "expense")
+    conn.close()
+    return render_template("transactions.html", records=records, months=months,
+                           filter_month=filter_month, filter_type=filter_type,
+                           categories=TRANSACTION_CATEGORIES,
+                           total_in=total_in, total_out=total_out)
+
+
+@app.route("/transactions/add", methods=["POST"])
+@login_required
+def add_transaction():
+    user_id = get_user_id()
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO transactions (user_id, date, type, category, description, amount) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, request.form["date"], request.form["type"],
+         request.form["category"], request.form.get("description", ""), form_float("amount"))
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/transactions")
+
+
+@app.route("/transactions/edit/<int:record_id>", methods=["POST"])
+@login_required
+def edit_transaction(record_id):
+    conn = get_db()
+    conn.execute(
+        "UPDATE transactions SET date=?, type=?, category=?, description=?, amount=? WHERE id=? AND user_id=?",
+        (request.form["date"], request.form["type"], request.form["category"],
+         request.form.get("description", ""), form_float("amount"), record_id, get_user_id())
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/transactions")
+
+
+@app.route("/transactions/delete/<int:record_id>")
+@login_required
+def delete_transaction(record_id):
+    conn = get_db()
+    conn.execute("DELETE FROM transactions WHERE id=? AND user_id=?", (record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/transactions")
+
+
+# ─────────────────────────────────────────────
+# EDIT ROUTES (all sections)
+# ─────────────────────────────────────────────
+
+@app.route("/income/edit/<int:record_id>", methods=["POST"])
+@login_required
+def edit_income(record_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE income SET month=?, salary=?, bonus=?, side=?, rental=?, dividends=?, gifts=?, other=?
+        WHERE id=? AND user_id=?
+    ''', (request.form.get("month"), form_float("salary"), form_float("bonus"),
+          form_float("side"), form_float("rental"), form_float("dividends"),
+          form_float("gifts"), form_float("other"), record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/income")
+
+
+@app.route("/expenses/edit/<int:record_id>", methods=["POST"])
+@login_required
+def edit_expense(record_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE expenses SET month=?, utilities=?, groceries=?, dining_out=?, transport=?,
+        shopping=?, healthcare=?, entertainment=?, personal_care=?, other=?
+        WHERE id=? AND user_id=?
+    ''', (request.form.get("month"), form_float("utilities"), form_float("groceries"),
+          form_float("dining_out"), form_float("transport"), form_float("shopping"),
+          form_float("healthcare"), form_float("entertainment"), form_float("personal_care"),
+          form_float("other"), record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/expenses")
+
+
+@app.route("/recurring/edit/<int:record_id>", methods=["POST"])
+@login_required
+def edit_recurring(record_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE recurring SET name=?, category=?, amount=?, due_day=?, notes=?
+        WHERE id=? AND user_id=?
+    ''', (request.form["name"], request.form["category"], form_float("amount"),
+          form_int("due_day"), request.form.get("notes", ""), record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/recurring")
+
+
+@app.route("/recurring/mark-paid/<int:record_id>")
+@login_required
+def mark_recurring_paid(record_id):
+    """Create an expense entry from a recurring bill for the current month."""
+    user_id = get_user_id()
+    conn = get_db()
+    bill = conn.execute("SELECT * FROM recurring WHERE id=? AND user_id=?", (record_id, user_id)).fetchone()
+    if bill:
+        cur_month = datetime.now().strftime("%Y-%m")
+        # Map recurring category to expense column
+        cat_map = {
+            "Housing": "utilities", "Utilities": "utilities",
+            "Transport": "transport", "Healthcare": "healthcare",
+            "Entertainment": "entertainment", "Subscriptions": "entertainment",
+            "Insurance": "other", "Other": "other",
+        }
+        col = cat_map.get(bill["category"], "other")
+        # Insert as a transaction too
+        conn.execute(
+            "INSERT INTO transactions (user_id, date, type, category, description, amount) VALUES (?, ?, ?, ?, ?, ?)",
+            (user_id, datetime.now().strftime("%Y-%m-%d"), "expense", col,
+             f"Recurring: {bill['name']}", bill["amount"])
+        )
+        conn.commit()
+    conn.close()
+    return redirect("/recurring")
+
+
+@app.route("/savings/delete/<int:record_id>")
+@login_required
+def delete_savings(record_id):
+    conn = get_db()
+    conn.execute("DELETE FROM savings WHERE id=? AND user_id=?", (record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/savings")
+
+
+@app.route("/savings/edit/<int:record_id>", methods=["POST"])
+@login_required
+def edit_savings(record_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE savings SET month=?, amount=?, investment=?, type=?, notes=?
+        WHERE id=? AND user_id=?
+    ''', (request.form.get("month"), form_float("amount"), form_float("investment"),
+          request.form.get("type", ""), request.form.get("notes", ""),
+          record_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/savings")
+
+
+@app.route("/savings/goal/edit/<int:goal_id>", methods=["POST"])
+@login_required
+def edit_savings_goal(goal_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE savings_goals SET name=?, target=?, saved=?, deadline=?
+        WHERE id=? AND user_id=?
+    ''', (request.form["name"], form_float("target"), form_float("saved"),
+          request.form.get("deadline", ""), goal_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/savings")
+
+
+@app.route("/savings/goal/delete/<int:goal_id>")
+@login_required
+def delete_savings_goal(goal_id):
+    conn = get_db()
+    conn.execute("DELETE FROM savings_goals WHERE id=? AND user_id=?", (goal_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/savings")
+
+
+@app.route("/credit/edit/<int:card_id>", methods=["POST"])
+@login_required
+def edit_credit(card_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE credit_cards SET name=?, rate=?, balance=?
+        WHERE id=? AND user_id=?
+    ''', (request.form["name"], form_float("rate"), form_float("balance"),
+          card_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/credit")
+
+
+@app.route("/loans/edit/<int:loan_id>", methods=["POST"])
+@login_required
+def edit_loan(loan_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE loans SET name=?, rate=?, balance=?
+        WHERE id=? AND user_id=?
+    ''', (request.form["name"], form_float("rate"), form_float("balance"),
+          loan_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/loans")
+
+
+@app.route("/shares/edit/<int:share_id>", methods=["POST"])
+@login_required
+def edit_share(share_id):
+    conn = get_db()
+    conn.execute('''
+        UPDATE foreign_shares SET name=?, units=?, price_per_unit=?, date_bought=?
+        WHERE id=? AND user_id=?
+    ''', (request.form["name"], form_float("units"), form_float("price_per_unit"),
+          request.form.get("date_bought", ""), share_id, get_user_id()))
+    conn.commit()
+    conn.close()
+    return redirect("/shares")
 
 
 # ─────────────────────────────────────────────

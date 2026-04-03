@@ -26,6 +26,15 @@
     </div>
 </div>
 
+{% if nw_labels and nw_labels|length > 0 %}
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h2>📈 Net Worth Over Time</h2></div>
+    <div class="card-body">
+        <canvas id="netWorthChart" height="300"></canvas>
+    </div>
+</div>
+{% endif %}
+
 {% if income_labels %}
 <div class="card">
     <div class="card-header"><h2>Summary Table</h2></div>
@@ -93,5 +102,28 @@ new Chart(document.getElementById('expenseChart'), {
     },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
 });
+
+// Net Worth Over Time
+const nwLabels = {{ nw_labels | default([], true) | tojson }};
+const nwValues = {{ nw_values | default([], true) | tojson }};
+if (nwLabels.length > 0 && document.getElementById('netWorthChart')) {
+    new Chart(document.getElementById('netWorthChart'), {
+        type: 'line',
+        data: {
+            labels: nwLabels,
+            datasets: [{
+                label: 'Net Worth ({{ currency }})',
+                data: nwValues,
+                borderColor: '#06C270',
+                backgroundColor: 'rgba(6,194,112,0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#06C270'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+}
 </script>
 {% endblock %}

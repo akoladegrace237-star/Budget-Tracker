@@ -274,6 +274,67 @@ function populateBudgetStatus(data) {
     }
 }
 
+// ─── Bill Alerts ──────────────────────────────────────────────────────────────
+
+function populateBillAlerts(bills) {
+    const banner = document.getElementById('billAlertBanner');
+    const textEl = document.getElementById('billAlertText');
+    if (!banner || !textEl) return;
+
+    if (!bills || bills.length === 0) { banner.style.display = 'none'; return; }
+
+    const today = new Date().getDate();
+    const urgent = bills.filter(b => {
+        const diff = b.due_day - today;
+        return diff >= 0 && diff <= 3;
+    });
+
+    if (urgent.length === 0) { banner.style.display = 'none'; return; }
+
+    const total = urgent.reduce((s, b) => s + (b.amount || 0), 0);
+    const names = urgent.map(b => b.name).join(', ');
+    textEl.textContent = `${urgent.length} bill${urgent.length > 1 ? 's' : ''} due within 3 days: ${names} (${fmt(total)})`;
+    banner.style.display = 'flex';
+}
+
+// ─── Net Worth Trend ──────────────────────────────────────────────────────────
+
+let netWorthChart = null;
+
+function buildNetWorthChart(history) {
+    const section = document.getElementById('netWorthChartSection');
+    const ctx = document.getElementById('netWorthTrendChart');
+    if (!ctx || !history || history.length < 2) { if (section) section.style.display = 'none'; return; }
+
+    if (section) section.style.display = '';
+    const labels = history.map(h => h.month);
+    const values = history.map(h => h.net_worth);
+
+    if (netWorthChart) netWorthChart.destroy();
+    netWorthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Net Worth',
+                data: values,
+                borderColor: '#4361EE',
+                backgroundColor: 'rgba(67,97,238,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: '#4361EE',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: false } }
+        }
+    });
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function loadDashboard() {
@@ -287,7 +348,9 @@ async function loadDashboard() {
         populateBudgetStatus(data);
         populateGoals(data.savings_goals || []);
         populateBills(data.upcoming_bills || []);
+        populateBillAlerts(data.bill_alerts || data.upcoming_bills || []);
         buildCharts(data);
+        buildNetWorthChart(data.net_worth_history || []);
     } catch (err) {
         console.error('Dashboard data fetch failed:', err);
     }

@@ -14,11 +14,26 @@
 {% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
 </div>{% endif %}{% endwith %}
 
+<!-- Month Filter -->
+<div class="filter-bar">
+    <form method="GET" action="/income" class="filter-form">
+        <select name="month" onchange="this.form.submit()">
+            <option value="">All months</option>
+            {% for m in months %}
+            <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+        {% if filter_month %}<a href="/income" class="btn-sm btn-outline">Clear</a>{% endif %}
+    </form>
+</div>
+
 {% if records %}
 <div class="record-list">
     {% for r in records %}
     {% set total = r.salary + r.bonus + r.side + r.rental + r.dividends + r.gifts + r.other %}
-    <div class="record-card">
+    <div class="record-card" data-id="{{ r.id }}" data-month="{{ r.month }}"
+         data-salary="{{ r.salary }}" data-bonus="{{ r.bonus }}" data-side="{{ r.side }}"
+         data-rental="{{ r.rental }}" data-dividends="{{ r.dividends }}" data-gifts="{{ r.gifts }}" data-other="{{ r.other }}">
         <div class="record-card-main" onclick="toggleRecord(this)">
             <div class="record-info">
                 <span class="record-month">{{ r.month }}</span>
@@ -39,6 +54,7 @@
             {% if r.other %}    <div class="detail-row"><span class="dl">Other</span>      <span class="dv">{{ currency }}{{ "%.2f"|format(r.other) }}</span></div>{% endif %}
             <div class="detail-row total"><span class="dl">Total</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
             <div class="detail-actions">
+                <button class="btn-edit" onclick="editIncome(this)">✏️ Edit</button>
                 <a href="/income/delete/{{ r.id }}" class="btn-delete"
                    onclick="return confirmDelete()">🗑 Delete</a>
             </div>
@@ -83,4 +99,48 @@
         </form>
     </div>
 </div>
+
+<!-- Bottom Sheet: Edit Income -->
+<div class="bottom-sheet" id="editIncomeSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Income</h3><button class="sheet-close-btn" onclick="closeSheet('editIncomeSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editIncomeForm" class="sheet-form">
+            <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Salary ({{ currency }})</label><input type="number" name="salary" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Bonus ({{ currency }})</label><input type="number" name="bonus" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Side Income ({{ currency }})</label><input type="number" name="side" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Rental ({{ currency }})</label><input type="number" name="rental" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Dividends ({{ currency }})</label><input type="number" name="dividends" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-group"><label>Gifts ({{ currency }})</label><input type="number" name="gifts" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div class="form-group"><label>Other ({{ currency }})</label><input type="number" name="other" step="0.01" min="0" placeholder="0.00"></div>
+            <button type="submit" class="btn-submit">Update Record</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function editIncome(btn) {
+    const card = btn.closest('.record-card');
+    const form = document.getElementById('editIncomeForm');
+    form.action = '/income/edit/' + card.dataset.id;
+    form.month.value = card.dataset.month;
+    form.salary.value = card.dataset.salary || '';
+    form.bonus.value = card.dataset.bonus || '';
+    form.side.value = card.dataset.side || '';
+    form.rental.value = card.dataset.rental || '';
+    form.dividends.value = card.dataset.dividends || '';
+    form.gifts.value = card.dataset.gifts || '';
+    form.other.value = card.dataset.other || '';
+    openSheet('editIncomeSheet');
+}
+</script>
 {% endblock %}

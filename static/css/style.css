@@ -1176,6 +1176,63 @@ footer {
   padding: 18px 16px; margin-bottom: 16px;
   box-shadow: 0 2px 10px rgba(0,0,0,.07);
 }
+
+/* ── Filter bar ─────────────────────────────────────────── */
+.filter-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  background: var(--bg-card, #fff); border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.filter-bar label { font-size: .82rem; font-weight: 600; color: var(--text-light, #888); white-space: nowrap; }
+.filter-bar select {
+  flex: 1; padding: 7px 10px; border: 1px solid var(--border, #e0e0e0);
+  border-radius: 10px; font-size: .85rem; background: var(--bg-body, #f8f8f8);
+}
+.filter-bar .btn-sm {
+  padding: 6px 14px; font-size: .82rem; border-radius: 10px;
+  background: var(--primary-color, #4361EE); color: #fff; border: none; cursor: pointer;
+}
+
+/* ── Transaction summary ────────────────────────────────── */
+.transaction-summary {
+  display: flex; gap: 8px; margin-bottom: 14px;
+}
+.ts-item {
+  flex: 1; text-align: center; padding: 10px 6px;
+  background: var(--bg-card, #fff); border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.ts-item .ts-label { display: block; font-size: .72rem; color: var(--text-light, #888); margin-bottom: 2px; }
+.ts-item .ts-value { display: block; font-size: 1rem; font-weight: 700; }
+.ts-item .ts-value.pos { color: #06C270; }
+.ts-item .ts-value.neg { color: #EF4444; }
+
+/* ── Edit / Mark-paid buttons ───────────────────────────── */
+.btn-edit, .btn-paid {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border: none; border-radius: 8px;
+  font-size: .78rem; font-weight: 600; cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-edit { background: rgba(67,97,238,.12); color: #4361EE; }
+.btn-paid { background: rgba(6,194,112,.12); color: #06C270; }
+.btn-edit:hover, .btn-paid:hover { opacity: .8; }
+
+/* ── Bill alert banner ──────────────────────────────────── */
+.bill-alert-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 14px;
+  background: linear-gradient(90deg, #FFF5F5, #FFF0E6);
+  border: 1px solid #FEB2B2; border-radius: 14px;
+  color: #C53030; font-size: .85rem; font-weight: 600;
+}
+.bill-alert-icon { font-size: 1.2rem; }
+
+/* ── Goals grid enhancements ────────────────────────────── */
+.goal-card .detail-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
 .settings-section-label {
   font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .06em; color: var(--text-light, #888); margin-bottom: 6px;

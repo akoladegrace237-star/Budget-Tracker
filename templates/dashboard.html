@@ -24,6 +24,12 @@
     </div>
 </div>
 
+<!-- Bill Alerts Banner (populated by JS) -->
+<div class="bill-alert-banner" id="billAlertBanner" style="display:none;">
+    <span class="bill-alert-icon">🔔</span>
+    <span class="bill-alert-text" id="billAlertText"></span>
+</div>
+
 <!-- Summary Cards -->
 <div class="summary-cards">
     <div class="card income-card">
@@ -97,7 +103,7 @@
     <div class="card investment-card">
         <div class="card-icon">📈</div>
         <div class="card-content">
-            <h3>Foreign Shares</h3>
+            <h3>Portfolio</h3>
             <p class="amount" id="totalPortfolioValue">£0.00</p>
             <span class="card-trend" id="portfolioCount">Portfolio value</span>
         </div>
@@ -168,6 +174,14 @@
     <h3 class="section-title">📅 Upcoming Bills</h3>
     <div class="bills-list" id="upcomingBillsList">
         <p class="bills-empty">No upcoming bills</p>
+    </div>
+</div>
+
+<!-- Net Worth Trend -->
+<div class="chart-wrapper" id="netWorthChartSection" style="margin-bottom:20px;display:none;">
+    <h3 class="chart-title">📈 Net Worth Over Time</h3>
+    <div class="chart-container" style="height:250px;">
+        <canvas id="netWorthTrendChart"></canvas>
     </div>
 </div>
 {% endblock %}

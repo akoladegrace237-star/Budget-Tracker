@@ -55,17 +55,18 @@
     <!-- Desktop Nav -->
     <nav class="tabs" id="navTabs">
         {% for path, label in [
-            ('dashboard',   'Dashboard'),
-            ('income',      'Income'),
-            ('expenses',    'Expenses'),
-            ('recurring',   'Recurring'),
-            ('budgets',     'Budgets'),
+            ('dashboard',     'Dashboard'),
+            ('income',        'Income'),
+            ('expenses',      'Expenses'),
+            ('transactions',  'Transactions'),
+            ('recurring',     'Recurring'),
+            ('budgets',       'Budgets'),
             ('savings',     'Savings'),
             ('credit',      'Credit'),
             ('loans',       'Loans'),
             ('debt-payoff', 'Debt Payoff'),
             ('projections', 'Projections'),
-            ('shares',      'Foreign Shares'),
+            ('shares',      'Portfolio'),
             ('settings',    'Settings'),
         ] %}
         <a href="/{{ path }}" class="tab-btn {% if request.path == '/' + path %}active{% endif %}">{{ label }}</a>
@@ -110,12 +111,13 @@
         <p class="more-sheet-title">More sections</p>
         <div class="more-grid">
             <a href="/budgets"     class="more-item"><span class="more-item-icon">🎯</span>Budgets</a>
+            <a href="/transactions" class="more-item"><span class="more-item-icon">📝</span>Transactions</a>
             <a href="/savings"     class="more-item"><span class="more-item-icon">🏦</span>Savings</a>
             <a href="/credit"      class="more-item"><span class="more-item-icon">💳</span>Credit</a>
             <a href="/loans"       class="more-item"><span class="more-item-icon">🏛</span>Loans</a>
             <a href="/debt-payoff" class="more-item"><span class="more-item-icon">🧠</span>Debt Payoff</a>
             <a href="/projections" class="more-item"><span class="more-item-icon">📊</span>Projections</a>
-            <a href="/shares"      class="more-item"><span class="more-item-icon">📈</span>Shares</a>
+            <a href="/shares"      class="more-item"><span class="more-item-icon">📈</span>Portfolio</a>
             <a href="/settings"    class="more-item"><span class="more-item-icon">⚙️</span>Settings</a>
             <a href="/logout"      class="more-item danger"><span class="more-item-icon">🔒</span>Logout</a>
         </div>

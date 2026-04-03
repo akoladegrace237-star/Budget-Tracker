@@ -17,7 +17,8 @@
 {% if records %}
 <div class="record-list">
     {% for r in records %}
-    <div class="record-card">
+    <div class="record-card" data-id="{{ r.id }}" data-name="{{ r.name }}" data-category="{{ r.category }}"
+         data-amount="{{ r.amount }}" data-due_day="{{ r.due_day }}" data-notes="{{ r.notes or '' }}">
         <div class="record-card-main" onclick="toggleRecord(this)">
             <div class="record-info">
                 <span class="record-name">{{ r.name }}</span>
@@ -34,6 +35,9 @@
             <div class="detail-row"><span class="dl">Due Day</span> <span class="dv">Day {{ r.due_day }} of month</span></div>
             {% if r.notes %}<div class="detail-row"><span class="dl">Notes</span><span class="dv">{{ r.notes }}</span></div>{% endif %}
             <div class="detail-actions">
+                <a href="/recurring/mark-paid/{{ r.id }}" class="btn-paid"
+                   onclick="return confirm('Log this bill as paid for this month?')">✅ Mark Paid</a>
+                <button class="btn-edit" onclick="editRecurring(this)">✏️ Edit</button>
                 <a href="/recurring/delete/{{ r.id }}" class="btn-delete"
                    onclick="return confirmDelete()">🗑 Delete</a>
             </div>
@@ -77,4 +81,46 @@
         </form>
     </div>
 </div>
+
+<!-- Bottom Sheet: Edit Recurring -->
+<div class="bottom-sheet" id="editRecurringSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Recurring Bill</h3><button class="sheet-close-btn" onclick="closeSheet('editRecurringSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editRecurringForm" class="sheet-form">
+            <div class="form-group"><label>Name</label><input type="text" name="name" required></div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    <option>Housing</option><option>Utilities</option>
+                    <option>Subscriptions</option><option>Insurance</option>
+                    <option>Transport</option><option>Healthcare</option>
+                    <option>Entertainment</option><option>Other</option>
+                </select>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Amount ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Due Day</label><input type="number" name="due_day" min="1" max="31" required></div>
+            </div>
+            <div class="form-group"><label>Notes</label><input type="text" name="notes"></div>
+            <button type="submit" class="btn-submit">Update Bill</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function editRecurring(btn) {
+    const card = btn.closest('.record-card');
+    const form = document.getElementById('editRecurringForm');
+    form.action = '/recurring/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.category.value = card.dataset.category;
+    form.amount.value = card.dataset.amount;
+    form.due_day.value = card.dataset.due_day;
+    form.notes.value = card.dataset.notes || '';
+    openSheet('editRecurringSheet');
+}
+</script>
 {% endblock %}

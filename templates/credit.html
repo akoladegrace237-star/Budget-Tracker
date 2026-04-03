@@ -18,7 +18,8 @@
 {% if cards %}
 <div class="debt-cards">
     {% for card in cards %}
-    <div class="debt-card">
+    <div class="debt-card" data-id="{{ card.id }}" data-name="{{ card.name }}"
+         data-rate="{{ card.rate }}" data-balance="{{ card.balance }}">
         <div class="debt-card-header">
             <span class="debt-name">{{ card.name }}</span>
             <span class="badge danger">{{ card.rate }}% APR</span>
@@ -32,8 +33,11 @@
                     <button type="submit" class="pay-btn">✔ Pay</button>
                 </div>
             </form>
-            <a href="/credit/delete/{{ card.id }}" class="btn-delete"
-               onclick="return confirmDelete('Delete this card?')">🗑 Delete Card</a>
+            <div class="detail-actions">
+                <button class="btn-edit" onclick="editCredit(this)">✏️ Edit</button>
+                <a href="/credit/delete/{{ card.id }}" class="btn-delete"
+                   onclick="return confirmDelete('Delete this card?')">🗑 Delete</a>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -60,4 +64,34 @@
         </form>
     </div>
 </div>
+
+<!-- Bottom Sheet: Edit Credit Card -->
+<div class="bottom-sheet" id="editCreditSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('editCreditSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editCreditForm" class="sheet-form">
+            <div class="form-group"><label>Card Name</label><input type="text" name="name" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Current Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Update Card</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function editCredit(btn) {
+    const card = btn.closest('.debt-card');
+    const form = document.getElementById('editCreditForm');
+    form.action = '/credit/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.rate.value = card.dataset.rate;
+    form.balance.value = card.dataset.balance;
+    openSheet('editCreditSheet');
+}
+</script>
 {% endblock %}

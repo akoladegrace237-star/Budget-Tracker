@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Transactions — Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📝 Transactions</h1>
+    <div class="header-actions">
+        <button class="btn-add" onclick="openSheet('addTransactionSheet')">+ Add</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<div class="flash-messages">
+{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
+</div>{% endif %}{% endwith %}
+
+<!-- Filters -->
+<div class="filter-bar">
+    <form method="GET" action="/transactions" class="filter-form">
+        <select name="month" onchange="this.form.submit()">
+            <option value="">All months</option>
+            {% for m in months %}
+            <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+        <select name="type" onchange="this.form.submit()">
+            <option value="">All types</option>
+            <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Income</option>
+            <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Expense</option>
+        </select>
+        {% if filter_month or filter_type %}
+        <a href="/transactions" class="btn-sm btn-outline">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Totals -->
+{% if records %}
+<div class="transaction-summary">
+    <div class="ts-item pos">
+        <span class="ts-label">Income</span>
+        <span class="ts-val">{{ currency }}{{ "%.2f"|format(total_in) }}</span>
+    </div>
+    <div class="ts-item neg">
+        <span class="ts-label">Expenses</span>
+        <span class="ts-val">{{ currency }}{{ "%.2f"|format(total_out) }}</span>
+    </div>
+    <div class="ts-item {% if total_in - total_out >= 0 %}pos{% else %}neg{% endif %}">
+        <span class="ts-label">Net</span>
+        <span class="ts-val">{{ currency }}{{ "%.2f"|format(total_in - total_out) }}</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- Records -->
+{% if records %}
+<div class="record-list">
+    {% for r in records %}
+    <div class="record-card" data-id="{{ r.id }}" data-date="{{ r.date }}" data-type="{{ r.type }}"
+         data-category="{{ r.category }}" data-description="{{ r.description }}" data-amount="{{ r.amount }}">
+        <div class="record-card-main" onclick="toggleRecord(this)">
+            <div class="record-info">
+                <span class="record-name">{{ r.description or r.category|replace('_',' ')|title }}</span>
+                <span class="record-sub">{{ r.date }} · {{ r.type|title }} · {{ r.category|replace('_',' ')|title }}</span>
+            </div>
+            <div class="record-right">
+                <span class="record-amount {% if r.type == 'income' %}pos{% else %}neg{% endif %}">
+                    {% if r.type == 'income' %}+{% else %}-{% endif %}{{ currency }}{{ "%.2f"|format(r.amount) }}
+                </span>
+                <span class="record-chevron">›</span>
+            </div>
+        </div>
+        <div class="record-card-details">
+            <div class="detail-row"><span class="dl">Date</span><span class="dv">{{ r.date }}</span></div>
+            <div class="detail-row"><span class="dl">Type</span><span class="dv">{{ r.type|title }}</span></div>
+            <div class="detail-row"><span class="dl">Category</span><span class="dv">{{ r.category|replace('_',' ')|title }}</span></div>
+            {% if r.description %}<div class="detail-row"><span class="dl">Description</span><span class="dv">{{ r.description }}</span></div>{% endif %}
+            <div class="detail-row total"><span class="dl">Amount</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.amount) }}</span></div>
+            <div class="detail-actions">
+                <button class="btn-edit" onclick="editTransaction(this)">✏️ Edit</button>
+                <a href="/transactions/delete/{{ r.id }}" class="btn-delete" onclick="return confirmDelete()">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">📝</span>
+    No transactions yet — tap <strong>+ Add</strong> to log your first transaction
+</div>
+{% endif %}
+
+<!-- Bottom Sheet: Add Transaction -->
+<div class="bottom-sheet" id="addTransactionSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Add Transaction</h3><button class="sheet-close-btn" onclick="closeSheet('addTransactionSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/transactions/add" class="sheet-form">
+            <div class="sheet-row">
+                <div class="form-group"><label>Date</label><input type="date" name="date" required></div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select name="type" required>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    {% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Amount ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required></div>
+                <div class="form-group"><label>Description</label><input type="text" name="description" placeholder="e.g. Tesco shopping"></div>
+            </div>
+            <button type="submit" class="btn-submit">Save Transaction</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bottom Sheet: Edit Transaction -->
+<div class="bottom-sheet" id="editTransactionSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Transaction</h3><button class="sheet-close-btn" onclick="closeSheet('editTransactionSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editTransactionForm" class="sheet-form">
+            <div class="sheet-row">
+                <div class="form-group"><label>Date</label><input type="date" name="date" required></div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select name="type" required>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    {% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Amount ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required></div>
+                <div class="form-group"><label>Description</label><input type="text" name="description" placeholder="e.g. Tesco shopping"></div>
+            </div>
+            <button type="submit" class="btn-submit">Update Transaction</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Set default date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    const today = new Date().toISOString().split('T')[0];
+    dateInputs.forEach(i => { if (!i.value) i.value = today; });
+});
+
+function editTransaction(btn) {
+    const card = btn.closest('.record-card');
+    const form = document.getElementById('editTransactionForm');
+    form.action = '/transactions/edit/' + card.dataset.id;
+    form.date.value = card.dataset.date;
+    form.type.value = card.dataset.type;
+    form.category.value = card.dataset.category;
+    form.description.value = card.dataset.description || '';
+    form.amount.value = card.dataset.amount;
+    openSheet('editTransactionSheet');
+}
+</script>
+{% endblock %}

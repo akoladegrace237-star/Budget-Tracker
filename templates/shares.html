@@ -1,9 +1,9 @@
 ﻿{% extends "base.html" %}
-{% block title %}Foreign Shares — Budget Tracker{% endblock %}
+{% block title %}Portfolio — Budget Tracker{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>📈 Shares</h1>
+    <h1>📈 Portfolio</h1>
     <div class="header-actions">
         <button class="btn-add" onclick="openSheet('addShareSheet')">+ Add</button>
     </div>
@@ -28,7 +28,9 @@
 <div class="record-list">
     {% for inv in investments %}
     {% set total = inv.units * inv.price_per_unit %}
-    <div class="record-card">
+    <div class="record-card" data-id="{{ inv.id }}" data-name="{{ inv.name }}"
+         data-units="{{ inv.units }}" data-price="{{ inv.price_per_unit }}"
+         data-date="{{ inv.date_bought or '' }}">
         <div class="record-card-main" onclick="toggleRecord(this)">
             <div class="record-info">
                 <span class="record-name">{{ inv.name }}</span>
@@ -45,6 +47,7 @@
             <div class="detail-row total"><span class="dl">Total Value</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
             {% if inv.date_bought %}<div class="detail-row"><span class="dl">Date Bought</span><span class="dv">{{ inv.date_bought }}</span></div>{% endif %}
             <div class="detail-actions">
+                <button class="btn-edit" onclick="editShare(this)">✏️ Edit</button>
                 <a href="/shares/delete/{{ inv.id }}" class="btn-delete"
                    onclick="return confirmDelete()">🗑 Delete</a>
             </div>
@@ -75,4 +78,36 @@
         </form>
     </div>
 </div>
+
+<!-- Bottom Sheet: Edit Investment -->
+<div class="bottom-sheet" id="editShareSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Investment</h3><button class="sheet-close-btn" onclick="closeSheet('editShareSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editShareForm" class="sheet-form">
+            <div class="form-group"><label>Stock / Asset Name</label><input type="text" name="name" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Units / Shares</label><input type="number" name="units" step="0.0001" min="0" required></div>
+                <div class="form-group"><label>Price Per Unit ({{ currency }})</label><input type="number" name="price_per_unit" step="0.0001" min="0" required></div>
+            </div>
+            <div class="form-group"><label>Date Bought</label><input type="date" name="date_bought"></div>
+            <button type="submit" class="btn-submit">Update Investment</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function editShare(btn) {
+    const card = btn.closest('.record-card');
+    const form = document.getElementById('editShareForm');
+    form.action = '/shares/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.units.value = card.dataset.units;
+    form.price_per_unit.value = card.dataset.price;
+    form.date_bought.value = card.dataset.date || '';
+    openSheet('editShareSheet');
+}
+</script>
 {% endblock %}
