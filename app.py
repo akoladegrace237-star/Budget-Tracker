@@ -261,10 +261,11 @@ def dashboard():
     ).fetchone()[0]
     total_debt = total_credit + total_loans
 
-    # Upcoming recurring bills
+    # Upcoming recurring bills (unpaid this month only)
+    cur_month = datetime.now().strftime("%Y-%m")
     upcoming_bills = conn.execute(
-        "SELECT * FROM recurring WHERE user_id=? ORDER BY due_day ASC LIMIT 5",
-        (user_id,)
+        "SELECT * FROM recurring WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?) ORDER BY due_day ASC LIMIT 5",
+        (user_id, cur_month)
     ).fetchall()
 
     conn.close()
@@ -1006,12 +1007,14 @@ def api_dashboard_data():
         (user_id,)
     ).fetchall()
 
-    # --- upcoming recurring bills (next 7 days by due_day) ---
+    # --- upcoming recurring bills (next 7 days by due_day, unpaid only) ---
+    cur_month = datetime.now().strftime("%Y-%m")
     today_day = datetime.now().day
     upcoming  = conn.execute(
         "SELECT name, category, amount, due_day FROM recurring "
-        "WHERE user_id=? AND due_day >= ? ORDER BY due_day ASC LIMIT 5",
-        (user_id, today_day)
+        "WHERE user_id=? AND due_day >= ? AND (last_paid_month IS NULL OR last_paid_month != ?) "
+        "ORDER BY due_day ASC LIMIT 5",
+        (user_id, today_day, cur_month)
     ).fetchall()
 
     # --- all-time totals ---
@@ -1072,16 +1075,16 @@ def api_dashboard_data():
         ).fetchone()
         return r[0] if r else 0
 
-    # Recurring bills are fixed monthly outgoings — fetch once and include in monthly totals
-    recurring_monthly = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM recurring WHERE user_id=?",
-        (user_id,)
-    ).fetchone()[0]
-
     cur_income   = month_income(cur_month)
-    cur_expense  = month_expense(cur_month) + recurring_monthly   # variable spend + fixed bills
+    cur_expense  = month_expense(cur_month)   # expenses table already includes paid bills via mark-paid
     prev_income  = month_income(prev_month)
-    prev_expense = month_expense(prev_month) + recurring_monthly  # same bills applied to prev month
+    prev_expense = month_expense(prev_month)
+
+    # Unpaid recurring bills (not yet marked paid this month) — used for cash-flow forecast
+    unpaid_recurring = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM recurring WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?)",
+        (user_id, cur_month)
+    ).fetchone()[0]
 
     # --- derived gross savings = income minus all expenses (auto-calculated) ---
     gross_savings_derived = max(0, total_income - total_expenses)
@@ -1127,11 +1130,10 @@ def api_dashboard_data():
         })
 
     # --- cash flow forecast ---
-    recurring_total_cf = recurring_monthly  # already fetched above
     cur_exp_total = sum(
         (cur_exp_row[k] or 0.0) for k, _ in EXPENSE_CATEGORIES
     ) if cur_exp_row else 0.0
-    forecast_balance = round(cur_income - recurring_total_cf - cur_exp_total, 2)
+    forecast_balance = round(cur_income - cur_exp_total - unpaid_recurring, 2)
 
     # --- auto-snapshot net worth for current month ---
     try:
@@ -1162,7 +1164,8 @@ def api_dashboard_data():
     days_in_month = monthrange(today.year, today.month)[1]
     bill_alerts = []
     all_bills = conn.execute(
-        "SELECT name, amount, due_day FROM recurring WHERE user_id=?", (user_id,)
+        "SELECT name, amount, due_day FROM recurring WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?)",
+        (user_id, cur_month)
     ).fetchall()
     for b in all_bills:
         diff = b["due_day"] - today_day
@@ -1207,7 +1210,7 @@ def api_dashboard_data():
         "budget_comparison": budget_comparison,
         "cash_flow_forecast": {
             "income":    round(cur_income, 2),
-            "recurring": round(recurring_total_cf, 2),
+            "recurring": round(unpaid_recurring, 2),
             "spent":     round(cur_exp_total, 2),
             "balance":   forecast_balance,
         },
