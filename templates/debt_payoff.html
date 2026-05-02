@@ -22,23 +22,26 @@
     <div class="debt-card" data-id="{{ card.id }}" data-name="{{ card.name }}"
          data-rate="{{ card.rate }}" data-balance="{{ card.balance }}">
         <div class="debt-card-header">
-            <span class="debt-name">{{ card.name }}</span>
-            <span class="badge danger">{{ card.rate }}% APR</span>
-        </div>
-        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
-        <div class="debt-actions">
-            <form method="POST" action="/credit/pay">
-                <input type="hidden" name="card_id" value="{{ card.id }}">
-                <div class="pay-row">
-                    <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
-                    <button type="submit" class="pay-btn">✔ Pay</button>
+            <div class="debt-header-left">
+                <span class="debt-name">{{ card.name }}</span>
+                <span class="badge danger">{{ card.rate }}% APR</span>
+            </div>
+            <div class="debt-kebab-wrap">
+                <button class="debt-kebab-btn" onclick="toggleKebab(this)" aria-label="More options">&#8943;</button>
+                <div class="debt-kebab-menu">
+                    <button class="kebab-option" onclick="editCredit(this)">Edit</button>
+                    <a class="kebab-option kebab-danger" href="/credit/delete/{{ card.id }}" onclick="return confirmDelete('Delete this card?')">Delete</a>
                 </div>
-            </form>
-            <div class="detail-actions">
-                <button class="btn-edit" onclick="editCredit(this)">✏️ Edit</button>
-                <a href="/credit/delete/{{ card.id }}" class="btn-delete" onclick="return confirmDelete('Delete this card?')">🗑 Delete</a>
             </div>
         </div>
+        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
+        <form method="POST" action="/credit/pay">
+            <input type="hidden" name="card_id" value="{{ card.id }}">
+            <div class="pay-row">
+                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                <button type="submit" class="pay-btn">Pay</button>
+            </div>
+        </form>
     </div>
     {% endfor %}
 </div>
@@ -57,23 +60,26 @@
     <div class="debt-card" data-id="{{ loan.id }}" data-name="{{ loan.name }}"
          data-rate="{{ loan.rate }}" data-balance="{{ loan.balance }}">
         <div class="debt-card-header">
-            <span class="debt-name">{{ loan.name }}</span>
-            <span class="badge warning">{{ loan.rate }}% APR</span>
-        </div>
-        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(loan.balance) }}</div>
-        <div class="debt-actions">
-            <form method="POST" action="/loans/pay">
-                <input type="hidden" name="loan_id" value="{{ loan.id }}">
-                <div class="pay-row">
-                    <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
-                    <button type="submit" class="pay-btn">✔ Pay</button>
+            <div class="debt-header-left">
+                <span class="debt-name">{{ loan.name }}</span>
+                <span class="badge warning">{{ loan.rate }}% APR</span>
+            </div>
+            <div class="debt-kebab-wrap">
+                <button class="debt-kebab-btn" onclick="toggleKebab(this)" aria-label="More options">&#8943;</button>
+                <div class="debt-kebab-menu">
+                    <button class="kebab-option" onclick="editLoan(this)">Edit</button>
+                    <a class="kebab-option kebab-danger" href="/loans/delete/{{ loan.id }}" onclick="return confirmDelete('Delete this loan?')">Delete</a>
                 </div>
-            </form>
-            <div class="detail-actions">
-                <button class="btn-edit" onclick="editLoan(this)">✏️ Edit</button>
-                <a href="/loans/delete/{{ loan.id }}" class="btn-delete" onclick="return confirmDelete('Delete this loan?')">🗑 Delete</a>
             </div>
         </div>
+        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(loan.balance) }}</div>
+        <form method="POST" action="/loans/pay">
+            <input type="hidden" name="loan_id" value="{{ loan.id }}">
+            <div class="pay-row">
+                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                <button type="submit" class="pay-btn">Pay</button>
+            </div>
+        </form>
     </div>
     {% endfor %}
 </div>
@@ -153,13 +159,9 @@
 <!-- Results -->
 <div id="payoffResults" style="display:none; margin-top:20px;">
     <div class="settings-section-label" id="resultsTitle">Payoff Plan</div>
-
-    <!-- Summary bar -->
     <div class="forecast-card" id="payoffSummaryCard">
         <div class="forecast-grid" id="payoffSummaryGrid"></div>
     </div>
-
-    <!-- Per-debt schedule -->
     <div class="payoff-schedule" id="payoffSchedule"></div>
 </div>
 
@@ -232,7 +234,6 @@
 
 {% block extra_scripts %}
 <script>
-// ── Debt data injected from Flask ────────────────────────────────────────────
 const AVALANCHE_ORDER = {{ avalanche | tojson }};
 const SNOWBALL_ORDER  = {{ snowball  | tojson }};
 const ALL_DEBTS       = {{ debts     | tojson }};
@@ -249,45 +250,30 @@ function fmt(n) {
     return CURRENCY + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// ── Amortization engine ───────────────────────────────────────────────────────
 function amortize(debts, extraBudget) {
-    // Clone debts
     let pool = debts.map((d, i) => ({
-        ...d,
-        remaining:     d.balance,
-        totalInterest: 0,
-        months:        0,
-        idx:           i,
+        ...d, remaining: d.balance, totalInterest: 0, months: 0, idx: i,
     }));
-
     const minPayments = pool.map(d => {
         const el = document.querySelector(`.payoff-min-input[data-key="${ALL_DEBTS.findIndex(x => x.name === d.name && x.balance === d.balance)}"]`);
         return el ? (parseFloat(el.value) || 0) : 0;
     });
-
     let totalMonths = 0;
-    const MAX_MONTHS = 600; // 50 years cap
-
+    const MAX_MONTHS = 600;
     while (pool.some(d => d.remaining > 0.005) && totalMonths < MAX_MONTHS) {
         totalMonths++;
         let leftoverBudget = extraBudget;
-
-        // Apply minimum payments first
         pool.forEach((d, i) => {
             if (d.remaining <= 0) return;
             const monthlyRate = d.rate / 100 / 12;
-            const interest    = d.remaining * monthlyRate;
-            d.totalInterest  += interest;
-            d.remaining      += interest;
-
-            const minPay = minPayments[i];
-            const pay    = Math.min(minPay, d.remaining);
+            const interest = d.remaining * monthlyRate;
+            d.totalInterest += interest;
+            d.remaining += interest;
+            const pay = Math.min(minPayments[i], d.remaining);
             d.remaining -= pay;
             leftoverBudget -= pay;
             if (d.remaining < 0.005) { d.remaining = 0; d.months = d.months || totalMonths; }
         });
-
-        // Apply extra budget to priority debt (first in ordered list with remaining > 0)
         if (leftoverBudget > 0) {
             const target = pool.find(d => d.remaining > 0);
             if (target) {
@@ -297,19 +283,13 @@ function amortize(debts, extraBudget) {
             }
         }
     }
-
-    // Record final months
     pool.forEach(d => { if (!d.months && d.remaining <= 0.005) d.months = totalMonths; });
     return { pool, totalMonths: pool.every(d => d.remaining <= 0) ? totalMonths : null };
 }
 
 function runCalculator() {
     const budget = parseFloat(document.getElementById('totalBudgetInput').value) || 0;
-    if (budget <= 0) {
-        alert('Please enter a monthly payment budget first.');
-        return;
-    }
-
+    if (budget <= 0) { alert('Please enter a monthly payment budget first.'); return; }
     const orderedDebts = currentStrategy === 'avalanche' ? AVALANCHE_ORDER : SNOWBALL_ORDER;
     const { pool, totalMonths } = amortize(orderedDebts, budget);
     renderResults(pool, totalMonths, budget);
@@ -318,59 +298,30 @@ function runCalculator() {
 function renderResults(pool, totalMonths, budget) {
     const resultDiv = document.getElementById('payoffResults');
     resultDiv.style.display = '';
-
     const totalInterest = pool.reduce((s, d) => s + d.totalInterest, 0);
-    const totalPaid     = pool.reduce((s, d) => s + d.totalInterest + d.balance, 0);
-
-    const stratLabel = currentStrategy === 'avalanche'
-        ? '🏔 Avalanche (Highest Rate First)'
-        : '⛄ Snowball (Lowest Balance First)';
+    const totalPaid = pool.reduce((s, d) => s + d.totalInterest + d.balance, 0);
+    const stratLabel = currentStrategy === 'avalanche' ? '🏔 Avalanche (Highest Rate First)' : '⛄ Snowball (Lowest Balance First)';
     document.getElementById('resultsTitle').textContent = `Payoff Plan — ${stratLabel}`;
-
-    const grid  = document.getElementById('payoffSummaryGrid');
-    const yrs   = totalMonths ? Math.floor(totalMonths / 12) : '?';
-    const mos   = totalMonths ? totalMonths % 12 : '?';
+    const grid = document.getElementById('payoffSummaryGrid');
+    const yrs = totalMonths ? Math.floor(totalMonths / 12) : '?';
+    const mos = totalMonths ? totalMonths % 12 : '?';
     grid.innerHTML = `
-        <div class="forecast-item">
-            <span class="forecast-label">Time to Debt Free</span>
-            <span class="forecast-value">${totalMonths ? `${yrs}y ${mos}m` : 'N/A'}</span>
-        </div>
-        <div class="forecast-item">
-            <span class="forecast-label">Total Interest</span>
-            <span class="forecast-value neg">${fmt(totalInterest)}</span>
-        </div>
-        <div class="forecast-item">
-            <span class="forecast-label">Total Paid</span>
-            <span class="forecast-value">${fmt(totalPaid)}</span>
-        </div>
-        <div class="forecast-item">
-            <span class="forecast-label">Monthly Budget</span>
-            <span class="forecast-value pos">${fmt(budget)}</span>
-        </div>`;
-
-    const sched = document.getElementById('payoffSchedule');
-    sched.innerHTML = pool.map((d, i) => `
+        <div class="forecast-item"><span class="forecast-label">Time to Debt Free</span><span class="forecast-value">${totalMonths ? `${yrs}y ${mos}m` : 'N/A'}</span></div>
+        <div class="forecast-item"><span class="forecast-label">Total Interest</span><span class="forecast-value neg">${fmt(totalInterest)}</span></div>
+        <div class="forecast-item"><span class="forecast-label">Total Paid</span><span class="forecast-value">${fmt(totalPaid)}</span></div>
+        <div class="forecast-item"><span class="forecast-label">Monthly Budget</span><span class="forecast-value pos">${fmt(budget)}</span></div>`;
+    document.getElementById('payoffSchedule').innerHTML = pool.map((d, i) => `
         <div class="payoff-result-row">
             <div class="payoff-result-header">
                 <span class="payoff-debt-name">${d.name}</span>
                 <span class="payoff-result-rank">#${i + 1} priority</span>
             </div>
             <div class="payoff-result-stats">
-                <div class="payoff-stat">
-                    <span class="payoff-stat-label">Paid off in</span>
-                    <span class="payoff-stat-val">${d.months ? `${d.months} months` : '?'}</span>
-                </div>
-                <div class="payoff-stat">
-                    <span class="payoff-stat-label">Total interest</span>
-                    <span class="payoff-stat-val neg">${fmt(d.totalInterest)}</span>
-                </div>
-                <div class="payoff-stat">
-                    <span class="payoff-stat-label">Total paid</span>
-                    <span class="payoff-stat-val">${fmt(d.totalInterest + d.balance)}</span>
-                </div>
+                <div class="payoff-stat"><span class="payoff-stat-label">Paid off in</span><span class="payoff-stat-val">${d.months ? `${d.months} months` : '?'}</span></div>
+                <div class="payoff-stat"><span class="payoff-stat-label">Total interest</span><span class="payoff-stat-val neg">${fmt(d.totalInterest)}</span></div>
+                <div class="payoff-stat"><span class="payoff-stat-label">Total paid</span><span class="payoff-stat-val">${fmt(d.totalInterest + d.balance)}</span></div>
             </div>
         </div>`).join('');
-
     resultDiv.scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -393,5 +344,18 @@ function editLoan(btn) {
     form.balance.value = card.dataset.balance;
     openSheet('editLoanSheet');
 }
+
+// ── Kebab menu ────────────────────────────────────────────────────────────────
+function toggleKebab(btn) {
+    const menu = btn.nextElementSibling;
+    const isOpen = menu.classList.contains('open');
+    document.querySelectorAll('.debt-kebab-menu.open').forEach(m => m.classList.remove('open'));
+    if (!isOpen) menu.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.debt-kebab-wrap')) {
+        document.querySelectorAll('.debt-kebab-menu.open').forEach(m => m.classList.remove('open'));
+    }
+});
 </script>
 {% endblock %}
