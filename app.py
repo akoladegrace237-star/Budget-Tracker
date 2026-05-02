@@ -636,14 +636,7 @@ def add_savings_goal():
 @app.route("/credit")
 @login_required
 def credit():
-    user_id = get_user_id()
-    conn    = get_db()
-    cards   = conn.execute(
-        "SELECT * FROM credit_cards WHERE user_id=?",
-        (user_id,)
-    ).fetchall()
-    conn.close()
-    return render_template("credit.html", cards=cards)
+    return redirect("/debt")
 
 
 @app.route("/credit/add", methods=["POST"])
@@ -662,7 +655,7 @@ def add_credit():
     ))
     conn.commit()
     conn.close()
-    return redirect("/credit")
+    return redirect("/debt")
 
 
 @app.route("/credit/pay", methods=["POST"])
@@ -678,7 +671,7 @@ def pay_credit():
         conn.execute("UPDATE credit_cards SET balance=? WHERE id=? AND user_id=?", (new_bal, card_id, user_id))
         conn.commit()
     conn.close()
-    return redirect("/credit")
+    return redirect("/debt")
 
 
 @app.route("/credit/delete/<int:card_id>")
@@ -688,7 +681,7 @@ def delete_credit(card_id):
     conn.execute("DELETE FROM credit_cards WHERE id=? AND user_id=?", (card_id, get_user_id()))
     conn.commit()
     conn.close()
-    return redirect("/credit")
+    return redirect("/debt")
 
 
 # ─────────────────────────────────────────────
@@ -698,14 +691,7 @@ def delete_credit(card_id):
 @app.route("/loans")
 @login_required
 def loans():
-    user_id   = get_user_id()
-    conn      = get_db()
-    loan_list = conn.execute(
-        "SELECT * FROM loans WHERE user_id=?",
-        (user_id,)
-    ).fetchall()
-    conn.close()
-    return render_template("loans.html", loans=loan_list)
+    return redirect("/debt")
 
 
 @app.route("/loans/add", methods=["POST"])
@@ -724,7 +710,7 @@ def add_loan():
     ))
     conn.commit()
     conn.close()
-    return redirect("/loans")
+    return redirect("/debt")
 
 
 @app.route("/loans/pay", methods=["POST"])
@@ -740,7 +726,7 @@ def pay_loan():
         conn.execute("UPDATE loans SET balance=? WHERE id=? AND user_id=?", (new_bal, loan_id, user_id))
         conn.commit()
     conn.close()
-    return redirect("/loans")
+    return redirect("/debt")
 
 
 @app.route("/loans/delete/<int:loan_id>")
@@ -750,7 +736,7 @@ def delete_loan(loan_id):
     conn.execute("DELETE FROM loans WHERE id=? AND user_id=?", (loan_id, get_user_id()))
     conn.commit()
     conn.close()
-    return redirect("/loans")
+    return redirect("/debt")
 
 
 # ─────────────────────────────────────────────
@@ -861,6 +847,53 @@ EXPENSE_CATEGORIES = [
 ]
 
 
+def get_month_expense_breakdown(conn, user_id, month):
+    """Return month expense totals by category and overall total."""
+    row = conn.execute(
+        "SELECT SUM(utilities) as utilities, SUM(groceries) as groceries, "
+        "SUM(dining_out) as dining_out, SUM(transport) as transport, "
+        "SUM(shopping) as shopping, SUM(healthcare) as healthcare, "
+        "SUM(entertainment) as entertainment, SUM(personal_care) as personal_care, "
+        "SUM(other) as other FROM expenses WHERE user_id=? AND month=?",
+        (user_id, month)
+    ).fetchone()
+    spent = {cat: ((row[cat] or 0.0) if row else 0.0) for cat, _ in EXPENSE_CATEGORIES}
+    return spent, sum(spent.values())
+
+
+def get_month_income_total(conn, user_id, month):
+    """Return month income total."""
+    return conn.execute(
+        "SELECT COALESCE(SUM(salary+bonus+side+rental+dividends+gifts+other),0) "
+        "FROM income WHERE user_id=? AND month=?",
+        (user_id, month)
+    ).fetchone()[0]
+
+
+def get_unpaid_recurring_total(conn, user_id, month):
+    """Return recurring bills not yet marked paid for a given month."""
+    return conn.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM recurring "
+        "WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?)",
+        (user_id, month)
+    ).fetchone()[0]
+
+
+def get_month_cash_flow(conn, user_id, month):
+    """Return unified month cash-flow values used by budgets and dashboard."""
+    spent_by_category, spent_total = get_month_expense_breakdown(conn, user_id, month)
+    income_total = get_month_income_total(conn, user_id, month)
+    unpaid_recurring = get_unpaid_recurring_total(conn, user_id, month)
+    balance = round(income_total - spent_total - unpaid_recurring, 2)
+    return {
+        "income": income_total,
+        "spent_by_category": spent_by_category,
+        "spent_total": spent_total,
+        "unpaid_recurring": unpaid_recurring,
+        "balance": balance,
+    }
+
+
 @app.route("/budgets")
 @login_required
 def budgets():
@@ -875,28 +908,8 @@ def budgets():
     ).fetchall()
     limits = {r["category"]: r["monthly_limit"] for r in limits_raw}
 
-    # Current month spending per category
-    exp_row = conn.execute(
-        "SELECT utilities, groceries, dining_out, transport, shopping, "
-        "healthcare, entertainment, personal_care, other "
-        "FROM expenses WHERE user_id=? AND month=?",
-        (user_id, cur_month)
-    ).fetchone()
-
-    # Aggregate if multiple rows exist for same month
-    if exp_row is None:
-        spent = {cat: 0.0 for cat, _ in EXPENSE_CATEGORIES}
-    else:
-        # Sum all rows for current month
-        rows = conn.execute(
-            "SELECT SUM(utilities) as utilities, SUM(groceries) as groceries, "
-            "SUM(dining_out) as dining_out, SUM(transport) as transport, "
-            "SUM(shopping) as shopping, SUM(healthcare) as healthcare, "
-            "SUM(entertainment) as entertainment, SUM(personal_care) as personal_care, "
-            "SUM(other) as other FROM expenses WHERE user_id=? AND month=?",
-            (user_id, cur_month)
-        ).fetchone()
-        spent = {cat: (rows[cat] or 0.0) for cat, _ in EXPENSE_CATEGORIES}
+    cash_flow = get_month_cash_flow(conn, user_id, cur_month)
+    spent = cash_flow["spent_by_category"]
 
     # Build comparison list
     comparison = []
@@ -921,20 +934,11 @@ def budgets():
             "status": status,
         })
 
-    # Cash flow forecast
-    cur_income = conn.execute(
-        "SELECT COALESCE(SUM(salary+bonus+side+rental+dividends+gifts+other),0) "
-        "FROM income WHERE user_id=? AND month=?",
-        (user_id, cur_month)
-    ).fetchone()[0]
-
-    recurring_total = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM recurring WHERE user_id=?",
-        (user_id,)
-    ).fetchone()[0]
-
-    cur_expenses_total = sum(v for v in spent.values())
-    forecast_balance   = round(cur_income - recurring_total - cur_expenses_total, 2)
+    # Cash flow forecast (same source-of-truth logic as dashboard API)
+    cur_income = cash_flow["income"]
+    recurring_total = cash_flow["unpaid_recurring"]
+    cur_expenses_total = cash_flow["spent_total"]
+    forecast_balance = cash_flow["balance"]
 
     conn.close()
 
@@ -1060,30 +1064,13 @@ def api_dashboard_data():
     cur_month  = datetime.now().strftime("%Y-%m")
     prev_month = (datetime.now().replace(day=1) - __import__('datetime').timedelta(days=1)).strftime("%Y-%m")
 
-    def month_income(m):
-        r = conn.execute(
-            "SELECT COALESCE(SUM(salary+bonus+side+rental+dividends+gifts+other),0) FROM income WHERE user_id=? AND month=?",
-            (user_id, m)
-        ).fetchone()
-        return r[0] if r else 0
-
-    def month_expense(m):
-        r = conn.execute(
-            "SELECT COALESCE(SUM(utilities+groceries+dining_out+transport+shopping+healthcare+entertainment+personal_care+other),0) FROM expenses WHERE user_id=? AND month=?",
-            (user_id, m)
-        ).fetchone()
-        return r[0] if r else 0
-
-    cur_income   = month_income(cur_month)
-    cur_expense  = month_expense(cur_month)   # expenses table already includes paid bills via mark-paid
-    prev_income  = month_income(prev_month)
-    prev_expense = month_expense(prev_month)
-
-    # Unpaid recurring bills (not yet marked paid this month) — used for cash-flow forecast
-    unpaid_recurring = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM recurring WHERE user_id=? AND (last_paid_month IS NULL OR last_paid_month != ?)",
-        (user_id, cur_month)
-    ).fetchone()[0]
+    cur_flow = get_month_cash_flow(conn, user_id, cur_month)
+    prev_flow = get_month_cash_flow(conn, user_id, prev_month)
+    cur_income = cur_flow["income"]
+    cur_expense = cur_flow["spent_total"]
+    prev_income = prev_flow["income"]
+    prev_expense = prev_flow["spent_total"]
+    unpaid_recurring = cur_flow["unpaid_recurring"]
 
     # --- derived gross savings = income minus all expenses (auto-calculated) ---
     gross_savings_derived = max(0, total_income - total_expenses)
@@ -1100,19 +1087,12 @@ def api_dashboard_data():
     ).fetchall()
     limits_map = {r["category"]: r["monthly_limit"] for r in limits_raw}
 
-    cur_exp_row = conn.execute(
-        "SELECT SUM(utilities) as utilities, SUM(groceries) as groceries, "
-        "SUM(dining_out) as dining_out, SUM(transport) as transport, "
-        "SUM(shopping) as shopping, SUM(healthcare) as healthcare, "
-        "SUM(entertainment) as entertainment, SUM(personal_care) as personal_care, "
-        "SUM(other) as other FROM expenses WHERE user_id=? AND month=?",
-        (user_id, cur_month)
-    ).fetchone()
+    cur_spent = cur_flow["spent_by_category"]
 
     budget_comparison = []
     for key, label in EXPENSE_CATEGORIES:
         limit  = limits_map.get(key, 0.0)
-        s      = (cur_exp_row[key] or 0.0) if cur_exp_row else 0.0
+        s      = cur_spent.get(key, 0.0)
         pct    = round(s / limit * 100, 1) if limit > 0 else None
         if pct is None:
             status = "no-limit"
@@ -1129,9 +1109,7 @@ def api_dashboard_data():
         })
 
     # --- cash flow forecast ---
-    cur_exp_total = sum(
-        (cur_exp_row[k] or 0.0) for k, _ in EXPENSE_CATEGORIES
-    ) if cur_exp_row else 0.0
+    cur_exp_total = cur_flow["spent_total"]
     forecast_balance = round(cur_income - cur_exp_total - unpaid_recurring, 2)
 
     # --- auto-snapshot net worth for current month ---
@@ -1384,7 +1362,7 @@ def export_csv(section):
 # DEBT PAYOFF CALCULATOR
 # ─────────────────────────────────────────────
 
-@app.route("/debt-payoff")
+@app.route("/debt")
 @login_required
 def debt_payoff():
     user_id = get_user_id()
@@ -1412,9 +1390,17 @@ def debt_payoff():
     total_debt = sum(d["balance"] for d in debts)
     return render_template("debt_payoff.html",
                            debts=debts,
+                           cards=cards,
+                           loans=loans,
                            avalanche=avalanche,
                            snowball=snowball,
                            total_debt=round(total_debt, 2))
+
+
+@app.route("/debt-payoff")
+@login_required
+def debt_payoff_legacy_redirect():
+    return redirect("/debt")
 
 
 # ─────────────────────────────────────────────
@@ -1669,7 +1655,7 @@ def edit_credit(card_id):
           card_id, get_user_id()))
     conn.commit()
     conn.close()
-    return redirect("/credit")
+    return redirect("/debt")
 
 
 @app.route("/loans/edit/<int:loan_id>", methods=["POST"])
@@ -1683,7 +1669,7 @@ def edit_loan(loan_id):
           loan_id, get_user_id()))
     conn.commit()
     conn.close()
-    return redirect("/loans")
+    return redirect("/debt")
 
 
 @app.route("/shares/edit/<int:share_id>", methods=["POST"])

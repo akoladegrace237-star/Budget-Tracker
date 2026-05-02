@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Debt Payoff — Budget Tracker{% endblock %}
+{% block title %}Debt Center — Budget Tracker{% endblock %}
 
 {% block extra_head %}
 <script>const CURRENCY = "{{ currency }}";</script>
@@ -7,9 +7,84 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>🧮 Debt Payoff</h1>
-    <a href="/debt-payoff" class="btn-add" style="text-decoration:none">↺ Reset</a>
+    <h1>🧠 Debt Center</h1>
+    <div class="header-actions">
+        <button class="btn-add" onclick="openSheet('addCreditSheet')">+ Card</button>
+        <button class="btn-add" onclick="openSheet('addLoanSheet')">+ Loan</button>
+    </div>
 </div>
+
+<!-- Credit Cards -->
+<div class="settings-section-label">Credit Cards</div>
+{% if cards %}
+<div class="debt-cards" style="margin-bottom:18px;">
+    {% for card in cards %}
+    <div class="debt-card" data-id="{{ card.id }}" data-name="{{ card.name }}"
+         data-rate="{{ card.rate }}" data-balance="{{ card.balance }}">
+        <div class="debt-card-header">
+            <span class="debt-name">{{ card.name }}</span>
+            <span class="badge danger">{{ card.rate }}% APR</span>
+        </div>
+        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
+        <div class="debt-actions">
+            <form method="POST" action="/credit/pay">
+                <input type="hidden" name="card_id" value="{{ card.id }}">
+                <div class="pay-row">
+                    <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                    <button type="submit" class="pay-btn">✔ Pay</button>
+                </div>
+            </form>
+            <div class="detail-actions">
+                <button class="btn-edit" onclick="editCredit(this)">✏️ Edit</button>
+                <a href="/credit/delete/{{ card.id }}" class="btn-delete" onclick="return confirmDelete('Delete this card?')">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="margin-bottom:16px;">
+    <span class="empty-icon">💳</span>
+    No credit cards yet
+</div>
+{% endif %}
+
+<!-- Loans -->
+<div class="settings-section-label">Loans</div>
+{% if loans %}
+<div class="debt-cards" style="margin-bottom:18px;">
+    {% for loan in loans %}
+    <div class="debt-card" data-id="{{ loan.id }}" data-name="{{ loan.name }}"
+         data-rate="{{ loan.rate }}" data-balance="{{ loan.balance }}">
+        <div class="debt-card-header">
+            <span class="debt-name">{{ loan.name }}</span>
+            <span class="badge warning">{{ loan.rate }}% APR</span>
+        </div>
+        <div class="debt-balance">{{ currency }}{{ "%.2f"|format(loan.balance) }}</div>
+        <div class="debt-actions">
+            <form method="POST" action="/loans/pay">
+                <input type="hidden" name="loan_id" value="{{ loan.id }}">
+                <div class="pay-row">
+                    <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                    <button type="submit" class="pay-btn">✔ Pay</button>
+                </div>
+            </form>
+            <div class="detail-actions">
+                <button class="btn-edit" onclick="editLoan(this)">✏️ Edit</button>
+                <a href="/loans/delete/{{ loan.id }}" class="btn-delete" onclick="return confirmDelete('Delete this loan?')">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="margin-bottom:16px;">
+    <span class="empty-icon">🏛</span>
+    No loans yet
+</div>
+{% endif %}
+
+<a href="/debt" class="btn-add" style="text-decoration:none; margin-bottom:16px; display:inline-block;">↺ Reset Plan</a>
 
 {% if not debts %}
 <div class="empty-state">
@@ -89,6 +164,70 @@
 </div>
 
 {% endif %}
+
+<!-- Bottom Sheet: Add Credit Card -->
+<div class="bottom-sheet" id="addCreditSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Add Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('addCreditSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/credit/add" class="sheet-form">
+            <div class="form-group"><label>Card Name</label><input type="text" name="name" placeholder="e.g. Visa, Amex..." required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
+                <div class="form-group"><label>Current Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" placeholder="0.00" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Add Card</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bottom Sheet: Edit Credit Card -->
+<div class="bottom-sheet" id="editCreditSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('editCreditSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editCreditForm" class="sheet-form">
+            <div class="form-group"><label>Card Name</label><input type="text" name="name" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Current Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Update Card</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bottom Sheet: Add Loan -->
+<div class="bottom-sheet" id="addLoanSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Add Loan</h3><button class="sheet-close-btn" onclick="closeSheet('addLoanSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" action="/loans/add" class="sheet-form">
+            <div class="form-group"><label>Loan Name</label><input type="text" name="name" placeholder="e.g. Student Loan, Car Loan..." required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
+                <div class="form-group"><label>Outstanding Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" placeholder="0.00" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Add Loan</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bottom Sheet: Edit Loan -->
+<div class="bottom-sheet" id="editLoanSheet">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-header"><h3>Edit Loan</h3><button class="sheet-close-btn" onclick="closeSheet('editLoanSheet')">✕</button></div>
+    <div class="sheet-body">
+        <form method="POST" id="editLoanForm" class="sheet-form">
+            <div class="form-group"><label>Loan Name</label><input type="text" name="name" required></div>
+            <div class="sheet-row">
+                <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>
+                <div class="form-group"><label>Outstanding Balance ({{ currency }})</label><input type="number" name="balance" step="0.01" min="0" required></div>
+            </div>
+            <button type="submit" class="btn-submit">Update Loan</button>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -233,6 +372,26 @@ function renderResults(pool, totalMonths, budget) {
         </div>`).join('');
 
     resultDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function editCredit(btn) {
+    const card = btn.closest('.debt-card');
+    const form = document.getElementById('editCreditForm');
+    form.action = '/credit/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.rate.value = card.dataset.rate;
+    form.balance.value = card.dataset.balance;
+    openSheet('editCreditSheet');
+}
+
+function editLoan(btn) {
+    const card = btn.closest('.debt-card');
+    const form = document.getElementById('editLoanForm');
+    form.action = '/loans/edit/' + card.dataset.id;
+    form.name.value = card.dataset.name;
+    form.rate.value = card.dataset.rate;
+    form.balance.value = card.dataset.balance;
+    openSheet('editLoanSheet');
 }
 </script>
 {% endblock %}

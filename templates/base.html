@@ -62,9 +62,7 @@
             ('recurring',     'Recurring'),
             ('budgets',       'Budgets'),
             ('savings',     'Savings'),
-            ('credit',      'Credit'),
-            ('loans',       'Loans'),
-            ('debt-payoff', 'Debt Payoff'),
+            ('debt',        'Debt'),
             ('projections', 'Projections'),
             ('shares',      'Portfolio'),
             ('settings',    'Settings'),
@@ -98,7 +96,7 @@
         <a href="/recurring"  class="bnav-item {% if cur == '/recurring'  %}active{% endif %}">
             <span class="bnav-icon">🔄</span><span class="bnav-label">Bills</span>
         </a>
-        <button class="bnav-item {% if cur in ['/savings','/credit','/loans','/projections','/shares','/budgets','/debt-payoff','/settings'] %}active{% endif %}"
+        <button class="bnav-item {% if cur in ['/savings','/debt','/credit','/loans','/projections','/shares','/budgets','/debt-payoff','/settings'] %}active{% endif %}"
                 onclick="openMoreMenu()">
             <span class="bnav-icon">☰</span><span class="bnav-label">More</span>
         </button>
@@ -113,9 +111,7 @@
             <a href="/budgets"     class="more-item"><span class="more-item-icon">🎯</span>Budgets</a>
             <a href="/transactions" class="more-item"><span class="more-item-icon">📝</span>Transactions</a>
             <a href="/savings"     class="more-item"><span class="more-item-icon">🏦</span>Savings</a>
-            <a href="/credit"      class="more-item"><span class="more-item-icon">💳</span>Credit</a>
-            <a href="/loans"       class="more-item"><span class="more-item-icon">🏛</span>Loans</a>
-            <a href="/debt-payoff" class="more-item"><span class="more-item-icon">🧠</span>Debt Payoff</a>
+            <a href="/debt"        class="more-item"><span class="more-item-icon">🧠</span>Debt</a>
             <a href="/projections" class="more-item"><span class="more-item-icon">📊</span>Projections</a>
             <a href="/shares"      class="more-item"><span class="more-item-icon">📈</span>Portfolio</a>
             <a href="/settings"    class="more-item"><span class="more-item-icon">⚙️</span>Settings</a>
