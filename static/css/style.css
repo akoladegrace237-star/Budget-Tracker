@@ -1269,15 +1269,24 @@ footer {
 .record-paid .record-amount { text-decoration: line-through; }
 
 /* ── Dashboard bill status (upcoming bills section) ─────── */
-.bill-paid { opacity: .6; }
+.bill-paid { opacity: .65; }
 .bill-status { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
-.status-paid { background: rgba(6,194,112,.12); color: #06C270; }
-.status-due  { background: rgba(239,68,68,.12); color: #EF4444; }
+.status-paid { background: rgba(22,163,74,.12); color: #16a34a; }
+.status-due  { background: rgba(220,38,38,.12); color: #dc2626; }
 .bill-pay-btn {
   font-size: .7rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;
-  background: rgba(99,102,241,.12); color: #6366F1; border: none; cursor: pointer;
+  background: rgba(37,99,235,.12); color: var(--primary-color, #2563EB); border: none; cursor: pointer;
 }
-.bill-pay-btn:hover { background: rgba(99,102,241,.22); }
+.bill-pay-btn:hover { background: rgba(37,99,235,.22); }
+
+/* Bill due-date tag */
+.bill-due-tag {
+  display: inline-block; font-size: .68rem; font-weight: 600;
+  color: var(--text-light, #64748b); margin-top: 2px;
+}
+.bill-due-tag.urgent { color: var(--danger-color, #dc2626); }
+.bill-due-tag.overdue { color: var(--danger-color, #dc2626); font-weight: 700; }
+.bill-due-tag.next-month { color: var(--text-light, #94a3b8); }
 
 /* ── Expense summary card ───────────────────────────────── */
 .expense-summary-card {

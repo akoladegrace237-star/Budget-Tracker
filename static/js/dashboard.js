@@ -113,6 +113,33 @@ function populateGoals(goals) {
 
 // ─── Upcoming bills ───────────────────────────────────────────────────────────
 
+function formatBillDue(dueDay, isPaid) {
+    const now      = new Date();
+    const yr       = now.getFullYear();
+    const mo       = now.getMonth();          // 0-indexed
+    const today    = now.getDate();
+    const opts     = { day: 'numeric', month: 'short' };
+
+    if (isPaid) {
+        // Already paid this month → show NEXT month's due date
+        const nextMo   = mo === 11 ? 0 : mo + 1;
+        const nextYr   = mo === 11 ? yr + 1 : yr;
+        const nextDate = new Date(nextYr, nextMo, dueDay);
+        return `<span class="bill-due-tag next-month">Next due ${nextDate.toLocaleDateString('en-GB', opts)}</span>`;
+    } else {
+        // Not yet paid — due this month
+        if (dueDay < today) {
+            const d = new Date(yr, mo, dueDay);
+            return `<span class="bill-due-tag overdue">Overdue (${d.toLocaleDateString('en-GB', opts)})</span>`;
+        } else {
+            const d = new Date(yr, mo, dueDay);
+            const diff = dueDay - today;
+            const urgency = diff <= 3 ? ' urgent' : '';
+            return `<span class="bill-due-tag${urgency}">Due ${d.toLocaleDateString('en-GB', opts)}</span>`;
+        }
+    }
+}
+
 function populateBills(bills) {
     const container = document.getElementById('upcomingBillsList');
     if (!container) return;
@@ -127,6 +154,7 @@ function populateBills(bills) {
             <div class="bill-left">
                 <span class="bill-name">${b.name}</span>
                 <span class="bill-category badge">${b.category}</span>
+                ${formatBillDue(b.due_day, b.paid)}
             </div>
             <div class="bill-right">
                 <span class="bill-amount">${fmt(b.amount)}</span>
