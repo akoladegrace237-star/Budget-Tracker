@@ -768,19 +768,17 @@ def projections():
         (user_id,)
     ).fetchall()
 
-    conn.close()
-
-    income_labels  = [r["month"] for r in income_data]
-    income_values  = [r["total"] for r in income_data]
-    expense_labels = [r["month"] for r in expense_data]
-    expense_values = [r["total"] for r in expense_data]
-
     # Net worth history
     nw_data = conn.execute(
         "SELECT month, net_worth, health_score FROM net_worth_history WHERE user_id=? ORDER BY month ASC",
         (user_id,)
     ).fetchall()
     conn.close()
+
+    income_labels  = [r["month"] for r in income_data]
+    income_values  = [r["total"] for r in income_data]
+    expense_labels = [r["month"] for r in expense_data]
+    expense_values = [r["total"] for r in expense_data]
 
     return render_template("projections.html",
         income_labels  = income_labels,
