@@ -420,6 +420,22 @@ body:not(:has(.navbar)) .auth-page { min-height: 100vh; }
   --danger-color:    #dc2626;
   --danger-light:    rgba(220,38,38,.10);
   --success-color:   #16a34a;
+
+  /* ── Aliases for legacy class usage (projections, etc.) ── */
+  --card-bg:   #ffffff;
+  --radius:    14px;
+  --shadow:    0 2px 8px rgba(0,0,0,.06);
+  --border:    #e2e8f0;
+  --bg:        #f8fafc;
+  --dark:      #0f172a;
+  --text:      #0f172a;
+  --text-muted:#64748b;
+  --primary:   #2563EB;
+  --secondary: #7c3aed;
+  --success:   #16a34a;
+  --danger:    #dc2626;
+  --warning:   #d97706;
+  --light-bg:  #f8fafc;
 }
 
 body {
@@ -949,6 +965,48 @@ footer {
 /* ─── INLINE FORM (desktop add form) ────────── */
 .collapse-form        { display: none; }
 .collapse-form.open   { display: block; }
+
+/* ═══ TABLET (769px – 1024px) ══════════════════
+   Tabs are visible; bottom nav is hidden.
+   Two-column grids, compact cards.
+   ════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container#mainApp { padding: 0 20px; }
+
+  /* Tabs: smaller text so they all fit */
+  .tab-btn { padding: 7px 12px; font-size: 0.78rem; }
+
+  /* Summary cards: 3 across on tablet */
+  .summary-cards { grid-template-columns: repeat(3, 1fr) !important; gap: 12px !important; }
+
+  /* Charts grid: always single column on tablet to avoid overflow */
+  .charts-grid { grid-template-columns: 1fr !important; }
+
+  /* Net worth hero a touch smaller */
+  .net-worth-hero { padding: 16px 20px !important; }
+  .nw-amount      { font-size: 2rem !important; }
+
+  /* Goals 3 columns */
+  .goals-grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* Debt cards side by side */
+  .debt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* Payoff debt list two-col */
+  .payoff-debt-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Ensure tables don't overflow */
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { min-width: 500px; }
+}
+
+/* ─── Ensure charts-grid stacks on mobile too ── */
+@media (max-width: 768px) {
+  .charts-grid { grid-template-columns: 1fr !important; }
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { min-width: 400px; }
+}
+
 
 .grid-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; align-items: end; }
 .grid-form .form-group      { display: flex; flex-direction: column; gap: 6px; }
