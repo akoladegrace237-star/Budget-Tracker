@@ -406,20 +406,20 @@ body:not(:has(.navbar)) .auth-page { min-height: 100vh; }
   --record-radius: 14px;
   --transition-sheet: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* ── Sky-blue & white palette ── */
-  --primary-color:   #0ea5e9;
-  --primary-light:   #e0f2fe;
-  --primary-dark:    #0284c7;
-  --bg-page:         #f0f9ff;
+  /* ── Classic professional palette ── */
+  --primary-color:   #2563EB;
+  --primary-light:   #eff6ff;
+  --primary-dark:    #1d4ed8;
+  --bg-page:         #f8fafc;
   --bg-card:         #ffffff;
-  --bg-input:        #f8fbff;
-  --bg-light:        #f0f9ff;
-  --border-color:    #bae6fd;
-  --text-dark:       #0c1a2e;
+  --bg-input:        #f8fafc;
+  --bg-light:        #f8fafc;
+  --border-color:    #e2e8f0;
+  --text-dark:       #0f172a;
   --text-light:      #64748b;
-  --danger-color:    #ef4444;
-  --danger-light:    rgba(239,68,68,.1);
-  --success-color:   #06C270;
+  --danger-color:    #dc2626;
+  --danger-light:    rgba(220,38,38,.10);
+  --success-color:   #16a34a;
 }
 
 body {
@@ -427,7 +427,7 @@ body {
   overscroll-behavior-x: none;
   display: block !important;
   min-height: 100vh;
-  background: var(--bg-page, #f0f9ff) !important;
+  background: var(--bg-page, #f8fafc) !important;
 }
 
 .container#mainApp {
@@ -443,17 +443,18 @@ body {
 /* ─── HEADER ─────────────────────────────────── */
 .header {
   padding: 14px var(--page-pad);
-  border-bottom: 1px solid var(--border-color, rgba(0,0,0,.08));
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
   display: flex; align-items: center;
   justify-content: space-between; flex-wrap: nowrap; gap: 8px;
-  background: linear-gradient(135deg, var(--primary-color, #0ea5e9) 0%, var(--primary-dark, #0284c7) 100%);
-  color: #fff;
+  background: #ffffff;
+  color: var(--text-dark);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-.header h1 { font-size: 1.1rem; color: #fff; }
+.header h1 { font-size: 1.1rem; color: var(--text-dark); }
 .header p  { display: none; }
 .header-logo { width: 32px; height: 32px; }
 .header-username {
-  font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,.9);
+  font-size: 0.88rem; font-weight: 600; color: var(--text-dark);
 }
 
 /* ─── DESKTOP TABS ───────────────────────────── */

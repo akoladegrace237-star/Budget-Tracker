@@ -163,36 +163,36 @@ html, body {
    ============================================================ */
 :root {
     /* Brand colours */
-    --primary-color: #4361EE;
-    --primary-dark:  #3451D1;
-    --primary-light: #EEF0FD;
-    --success-color: #06C270;
-    --success-light: #D3F9E5;
-    --warning-color: #FFCB47;
-    --warning-light: #FFF4D3;
-    --danger-color:  #EF4444;
-    --danger-light:  #FDECEA;
-    --purple-color:  #7C3AED;
-    --purple-light:  #EDE9FE;
+    --primary-color: #2563EB;
+    --primary-dark:  #1d4ed8;
+    --primary-light: #eff6ff;
+    --success-color: #16a34a;
+    --success-light: #f0fdf4;
+    --warning-color: #d97706;
+    --warning-light: #fffbeb;
+    --danger-color:  #dc2626;
+    --danger-light:  #fef2f2;
+    --purple-color:  #2563EB;
+    --purple-light:  #eff6ff;
 
     /* Surface colours */
-    --bg-page:   #F0F4FF;
+    --bg-page:   #f8fafc;
     --bg-card:   #FFFFFF;
-    --bg-input:  #F8FAFC;
-    --bg-muted:  #F1F5F9;
+    --bg-input:  #f8fafc;
+    --bg-muted:  #f1f5f9;
 
     /* Aliases kept for backward compat */
-    --light-bg:       #F0F4FF;
-    --border-color:   #E2E8F0;
-    --text-dark:      #1E293B;
+    --light-bg:       #f8fafc;
+    --border-color:   #e2e8f0;
+    --text-dark:      #0f172a;
     --text-light:     #64748B;
-    --text-muted:     #94A3B8;
+    --text-muted:     #94a3b8;
 
     /* Shadows */
-    --shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
-    --shadow-lg:  0 8px 32px rgba(0,0,0,0.14);
-    --shadow-card: 0 2px 12px rgba(67,97,238,0.08);
+    --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md:  0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg:  0 8px 24px rgba(0,0,0,0.10);
+    --shadow-card: 0 1px 4px rgba(0,0,0,0.06);
 
     /* Radii */
     --radius-sm: 8px;
@@ -225,11 +225,11 @@ html, body {
     --shadow-md:     0 4px 16px rgba(0,0,0,0.4);
 
     /* Specific dark overrides */
-    --primary-light: rgba(67,97,238,0.18);
-    --success-light: rgba(6,194,112,0.15);
-    --warning-light: rgba(255,203,71,0.15);
-    --danger-light:  rgba(239,68,68,0.15);
-    --purple-light:  rgba(124,58,237,0.18);
+    --primary-light: rgba(37,99,235,0.18);
+    --success-light: rgba(22,163,74,0.15);
+    --warning-light: rgba(217,119,6,0.15);
+    --danger-light:  rgba(220,38,38,0.15);
+    --purple-light:  rgba(37,99,235,0.18);
 }
 
 /* Login Screen Styles */
@@ -239,7 +239,7 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 50%, #0d47a1 100%);
+    background: #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -292,16 +292,16 @@ html, body {
 }
 
 .login-container {
-    background: rgba(255, 255, 255, 0.98);
-    padding: 50px 40px;
-    border-radius: 24px;
-    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+    background: #ffffff;
+    padding: 48px 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    border: 1px solid #e2e8f0;
     max-width: 400px;
     width: 90%;
     text-align: center;
     position: relative;
     z-index: 1;
-    backdrop-filter: blur(10px);
 }
 
 .login-logo {
@@ -374,10 +374,10 @@ html, body {
 
 .login-btn {
     width: 100%;
-    padding: 16px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+    padding: 14px;
+    font-size: 1rem;
+    border-radius: 10px;
+    background: var(--primary-color, #2563EB);
     border: none;
     color: white;
     cursor: pointer;
@@ -385,13 +385,12 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: all 0.3s ease;
+    transition: opacity 0.2s;
     font-weight: 600;
 }
 
 .login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(30, 136, 229, 0.4);
+    opacity: 0.88;
 }
 
 .btn-arrow {
@@ -652,12 +651,13 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #2563EB 60%, #1D4ED8 100%);
-    color: white;
-    padding: 18px 24px;
+    background: #ffffff;
+    color: var(--text-dark);
+    padding: 14px 24px;
     border-radius: var(--radius-lg);
     margin-bottom: 20px;
-    box-shadow: 0 4px 20px rgba(67,97,238,0.35);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -692,13 +692,14 @@ body {
 .header h1 {
     font-size: 1.6rem;
     margin-bottom: 2px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.3px;
+    color: var(--text-dark);
 }
 
 .header p {
     font-size: 0.85rem;
-    opacity: 0.85;
+    color: var(--text-light);
     font-weight: 400;
 }
 
@@ -715,11 +716,10 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: var(--bg-muted);
+    border: 1px solid var(--border-color);
     border-radius: 20px;
     padding: 4px 10px;
-    backdrop-filter: blur(4px);
 }
 .cloud-dot {
     width: 8px;
@@ -742,7 +742,7 @@ body {
 .cloud-status-label {
     font-size: 0.72rem;
     font-weight: 500;
-    color: rgba(255,255,255,0.88);
+    color: var(--text-light);
     white-space: nowrap;
 }
 @media (max-width: 480px) {
@@ -750,8 +750,8 @@ body {
 }
 
 .dark-mode-toggle {
-    background: rgba(255,255,255,0.18);
-    border: 1.5px solid rgba(255,255,255,0.28);
+    background: var(--bg-muted);
+    border: 1.5px solid var(--border-color);
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -761,11 +761,10 @@ body {
     cursor: pointer;
     font-size: 1.2rem;
     transition: var(--transition);
-    backdrop-filter: blur(4px);
 }
 
 .dark-mode-toggle:hover {
-    background: rgba(255,255,255,0.28);
+    background: var(--border-color);
     transform: rotate(20deg) scale(1.08);
 }
 
@@ -915,45 +914,42 @@ body {
 
 /* ── Net Worth Hero Card ───────────────────────────────────────── */
 .net-worth-hero {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #7C3AED 100%);
+    background: var(--bg-card);
     border-radius: var(--radius-lg);
     padding: 28px 32px;
     margin-bottom: 24px;
-    color: #fff;
+    color: var(--text-dark);
     text-align: center;
-    box-shadow: 0 8px 28px rgba(67,97,238,0.35);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
     position: relative;
     overflow: hidden;
 }
 .net-worth-hero::before {
-    content: '';
-    position: absolute;
-    top: -30px; right: -30px;
-    width: 120px; height: 120px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 50%;
+    content: none;
 }
 .nw-label {
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    opacity: 0.8;
+    color: var(--text-light);
     margin-bottom: 6px;
 }
 .nw-amount {
     font-size: 2.4rem;
-    font-weight: 900;
+    font-weight: 800;
     letter-spacing: -1px;
     line-height: 1;
     margin-bottom: 8px;
+    color: var(--text-dark);
 }
 .nw-meta {
     display: flex;
     justify-content: center;
     gap: 16px;
     flex-wrap: wrap;
-    opacity: 0.88;
+    color: var(--text-light);
     font-size: 0.82rem;
 }
 .nw-trend { font-weight: 600; }
@@ -1283,51 +1279,44 @@ body {
 }
 
 .income-card::before { background: var(--success-color); }
-.income-card .card-icon { background: #e8f5e9; }
+.income-card .card-icon { background: var(--success-light); }
 .income-card .amount { color: var(--success-color); }
 
 .expense-card::before { background: var(--danger-color); }
-.expense-card .card-icon { background: #ffebee; }
+.expense-card .card-icon { background: var(--danger-light); }
 .expense-card .amount { color: var(--danger-color); }
 
 .saving-card::before { background: var(--warning-color); }
-.saving-card .card-icon { background: #fff8e1; }
+.saving-card .card-icon { background: var(--warning-light); }
 .saving-card .amount { color: var(--warning-color); }
 
-.investment-card::before { background: #9467BD; }
-.investment-card .card-icon { background: #f3e5f5; }
-.investment-card .amount { color: #9467BD; }
+.investment-card::before { background: var(--primary-color); }
+.investment-card .card-icon { background: var(--primary-light); }
+.investment-card .amount { color: var(--primary-color); }
 
 .net-card::before { background: var(--primary-color); }
-.net-card .card-icon { background: #e3f2fd; }
+.net-card .card-icon { background: var(--primary-light); }
 .net-card .amount { color: var(--primary-color); }
 
-.debt-card::before { background: #8B0000; }
-.debt-card .card-icon { background: #fce4ec; }
-.debt-card .amount { color: #8B0000; }
-
-.investment-card::before { background: #1565c0; }
-.investment-card .card-icon { background: #e3f2fd; }
-.investment-card .amount { color: #1565c0; }
+.debt-card::before { background: var(--danger-color); }
+.debt-card .card-icon { background: var(--danger-light); }
+.debt-card .amount { color: var(--danger-color); }
 
 /* Budget Alert */
 .budget-alert {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, #fff3cd, #ffeeba);
-    border: 1px solid #ffc107;
-    border-left: 3px solid #ff9800;
+    background: var(--warning-light);
+    border: 1px solid var(--warning-color);
     border-radius: 6px;
     padding: 8px 12px;
     margin-bottom: 10px;
-    animation: pulse-alert 2s infinite;
 }
 
 .budget-alert.danger {
-    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-    border-color: #dc3545;
-    border-left-color: #dc3545;
+    background: var(--danger-light);
+    border-color: var(--danger-color);
 }
 
 @keyframes pulse-alert {
