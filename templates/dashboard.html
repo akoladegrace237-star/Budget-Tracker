@@ -168,8 +168,19 @@
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script>
 // ── Net Worth visibility toggle ──────────────────────────────
-let _nwHidden = false;
+let _nwHidden = localStorage.getItem('nwHidden') === 'true';
 let _nwValue  = '';
+
+// Called by dashboard.js after it sets the real value via fetch
+function applyNwMask() {
+    if (!_nwHidden) return;
+    const amountEl = document.getElementById('netWorthAmount');
+    const eyeEl    = document.getElementById('nwEyeIcon');
+    if (!amountEl) return;
+    _nwValue = amountEl.textContent;
+    amountEl.textContent = '••••••';
+    if (eyeEl) eyeEl.textContent = '🙈';
+}
 
 function toggleNetWorth() {
     const amountEl = document.getElementById('netWorthAmount');
@@ -185,6 +196,7 @@ function toggleNetWorth() {
         eyeEl.textContent    = '👁';
         _nwHidden = false;
     }
+    localStorage.setItem('nwHidden', _nwHidden);
 }
 </script>
 {% endblock %}

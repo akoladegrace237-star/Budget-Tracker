@@ -30,6 +30,7 @@ function setGreeting(username) {
 function populateCards(data) {
     const t = data.totals;
     setText('netWorthAmount',          fmt(t.net_worth));
+    if (window.applyNwMask) window.applyNwMask();
     setText('totalIncome',             fmt(t.income));
     setText('totalExpenses',           fmt(t.expenses));
     setText('totalSavings',            fmt(t.savings));
