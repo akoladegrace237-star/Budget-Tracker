@@ -438,21 +438,30 @@ def add_expense():
     month   = request.form.get("month", datetime.now().strftime("%Y-%m"))
 
     conn = get_db()
+    amounts = {key: form_float(key) for key, _ in EXPENSE_CATEGORIES}
     conn.execute('''
         INSERT INTO expenses (user_id, month, utilities, groceries, dining_out, transport, shopping, healthcare, entertainment, personal_care, other)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         user_id, month,
-        form_float("utilities"),
-        form_float("groceries"),
-        form_float("dining_out"),
-        form_float("transport"),
-        form_float("shopping"),
-        form_float("healthcare"),
-        form_float("entertainment"),
-        form_float("personal_care"),
-        form_float("other"),
+        amounts["utilities"],
+        amounts["groceries"],
+        amounts["dining_out"],
+        amounts["transport"],
+        amounts["shopping"],
+        amounts["healthcare"],
+        amounts["entertainment"],
+        amounts["personal_care"],
+        amounts["other"],
     ))
+    # Auto-create a transaction entry for each non-zero category
+    today = datetime.now().strftime("%Y-%m-%d")
+    for key, label in EXPENSE_CATEGORIES:
+        if amounts[key] > 0:
+            conn.execute(
+                "INSERT INTO transactions (user_id, date, type, category, description, amount) VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, today, "expense", key, f"Bulk: {label}", amounts[key])
+            )
     conn.commit()
     conn.close()
     return redirect("/expenses")
