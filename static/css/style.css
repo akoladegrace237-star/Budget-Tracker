@@ -473,10 +473,24 @@ body {
   color: var(--text-light, #64748b); border: none; background: transparent;
   cursor: pointer; min-height: var(--touch-min);
   display: inline-flex; align-items: center; transition: background .2s, color .2s;
+  position: relative;
 }
-.tab-btn:hover, .tab-btn.active {
-  background: var(--primary-light, #e0f2fe);
-  color: var(--primary-color, #0ea5e9); font-weight: 600;
+.tab-btn:hover {
+  background: var(--primary-light, #eff6ff);
+  color: var(--primary-color, #2563EB);
+}
+.tab-btn.active {
+  background: var(--primary-light, #eff6ff);
+  color: var(--primary-color, #2563EB);
+  font-weight: 700;
+}
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 12px; right: 12px;
+  height: 3px;
+  background: var(--primary-color, #2563EB);
+  border-radius: 3px 3px 0 0;
 }
 .logout-tab-btn { color: var(--danger-color, #EF4444) !important; }
 .logout-tab-btn:hover { background: rgba(239,68,68,.1) !important; }

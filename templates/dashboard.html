@@ -17,7 +17,12 @@
 
 <!-- Net Worth Hero -->
 <div class="net-worth-hero">
-    <div class="nw-label">Total Net Worth</div>
+    <div class="nw-label">
+        Total Net Worth
+        <button class="nw-toggle-btn" id="nwToggleBtn" onclick="toggleNetWorth()" title="Show/hide net worth" aria-label="Toggle net worth visibility">
+            <span id="nwEyeIcon">👁</span>
+        </button>
+    </div>
     <div class="nw-amount" id="netWorthAmount">£0.00</div>
     <div class="nw-meta">
         <span class="nw-sub">Everything you own minus everything you owe</span>
@@ -161,4 +166,25 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// ── Net Worth visibility toggle ──────────────────────────────
+let _nwHidden = false;
+let _nwValue  = '';
+
+function toggleNetWorth() {
+    const amountEl = document.getElementById('netWorthAmount');
+    const eyeEl    = document.getElementById('nwEyeIcon');
+    if (!amountEl) return;
+    if (!_nwHidden) {
+        _nwValue  = amountEl.textContent;
+        amountEl.textContent = '••••••';
+        eyeEl.textContent    = '🙈';
+        _nwHidden = true;
+    } else {
+        amountEl.textContent = _nwValue;
+        eyeEl.textContent    = '👁';
+        _nwHidden = false;
+    }
+}
+</script>
 {% endblock %}
