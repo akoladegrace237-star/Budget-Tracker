@@ -141,14 +141,28 @@ if ('serviceWorker' in navigator) {
   }).catch(err => console.warn('SW registration failed:', err));
 }
 
-// Capture beforeinstallprompt for custom install banner
+// ── PWA Install Banner ───────────────────────────────────────────
 let deferredPrompt;
+
+// If already installed (running as standalone PWA), never show the banner
+const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+// If user already dismissed permanently, don't show either
+const _bannerDismissed = localStorage.getItem('installBannerDismissed') === 'true';
+
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
+  if (_isStandalone || _bannerDismissed) return; // already installed or dismissed
   const banner = document.getElementById('installBanner');
   if (banner) banner.style.display = 'flex';
 });
+
+// Also hide immediately on load if running as standalone
+if (_isStandalone) {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+}
 
 function installApp() {
   if (!deferredPrompt) return;
@@ -157,12 +171,15 @@ function installApp() {
     deferredPrompt = null;
     const banner = document.getElementById('installBanner');
     if (banner) banner.style.display = 'none';
+    // Mark as installed so it never shows again
+    localStorage.setItem('installBannerDismissed', 'true');
   });
 }
 
 function dismissInstall() {
   const banner = document.getElementById('installBanner');
   if (banner) banner.style.display = 'none';
+  // Remember dismissal for this session only (not permanent)
 }
 </script>
 {% block extra_scripts %}{% endblock %}

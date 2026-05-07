@@ -12,7 +12,7 @@
             <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
 
-        <form method="POST" action="/login" class="auth-form">
+        <form method="POST" action="/login" class="auth-form" id="loginForm">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
@@ -21,10 +21,34 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
             </div>
+            <div class="remember-row">
+                <label class="remember-label">
+                    <input type="checkbox" id="rememberMe"> Remember my username
+                </label>
+            </div>
             <button type="submit" class="btn btn-primary btn-full">Sign In</button>
         </form>
 
         <p class="auth-switch">Don't have an account? <a href="/register">Register here</a></p>
+
+<script>
+(function() {
+    const saved = localStorage.getItem('rememberedUsername');
+    const usernameEl = document.getElementById('username');
+    const rememberEl = document.getElementById('rememberMe');
+    if (saved && usernameEl) {
+        usernameEl.value = saved;
+        rememberEl.checked = true;
+    }
+    document.getElementById('loginForm').addEventListener('submit', function() {
+        if (rememberEl.checked) {
+            localStorage.setItem('rememberedUsername', usernameEl.value);
+        } else {
+            localStorage.removeItem('rememberedUsername');
+        }
+    });
+})();
+</script>
     </div>
 </div>
 {% endblock %}

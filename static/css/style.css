@@ -368,6 +368,14 @@ body:not(:has(.navbar)) .auth-page { min-height: 100vh; }
 .auth-form     { text-align: left; display: flex; flex-direction: column; gap: 1rem; }
 .auth-switch   { margin-top: 1.25rem; font-size: 0.88rem; color: var(--text-muted); }
 .auth-switch a { color: var(--primary); text-decoration: none; font-weight: 500; }
+.remember-row  { display: flex; align-items: center; margin: -4px 0 4px; }
+.remember-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; color: var(--text-muted, #64748b); cursor: pointer;
+}
+.remember-label input[type="checkbox"] {
+  width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary, #2563EB);
+}
 
 /* ─── ALERTS ──────────────────────────────────── */
 .alert {
