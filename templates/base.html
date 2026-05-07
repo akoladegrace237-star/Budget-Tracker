@@ -179,8 +179,15 @@ function installApp() {
 function dismissInstall() {
   const banner = document.getElementById('installBanner');
   if (banner) banner.style.display = 'none';
-  // Remember dismissal for this session only (not permanent)
+  localStorage.setItem('installBannerDismissed', 'true');
 }
+
+// Hide banner permanently once the app is actually installed
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('installBannerDismissed', 'true');
+});
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>
