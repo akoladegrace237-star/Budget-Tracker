@@ -948,18 +948,36 @@ footer {
   .charts-section  { grid-template-columns: 1fr !important; }
 }
 
-/* ═══ DESKTOP: sheets become modals ════════════ */
+/* ═══ DESKTOP / TABLET: sheets become modals ═══ */
 @media (min-width: 769px) {
   .bottom-nav, .more-overlay, .more-sheet { display: none !important; }
+
+  /* Hidden state — must be invisible AND off-screen so it can't be interacted with */
   .bottom-sheet {
-    max-width: 540px; left: 50%; right: auto; bottom: auto; top: 50%;
+    max-width: 540px;
+    left: 50%; right: auto; bottom: auto; top: 50%;
     transform: translate(-50%, -50%) scale(.96);
     border-radius: var(--sheet-radius);
+    /* Hidden: invisible + no pointer events */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform .3s ease, opacity .3s ease, visibility 0s linear .3s;
   }
+
+  /* Open state */
   .bottom-sheet.open {
     transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform .3s ease, opacity .3s ease, visibility 0s linear 0s;
   }
+
   .sheet-drag-bar { display: none; }
+
+  /* Ensure overlay is wide enough to cover entire viewport on desktop */
+  .sheet-overlay { z-index: 940; }
 }
 
 /* ─── INLINE FORM (desktop add form) ────────── */
