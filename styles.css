@@ -162,31 +162,31 @@ html, body {
    DESIGN SYSTEM — Light Theme (default)
    ============================================================ */
 :root {
-    /* Brand colours */
-    --primary-color: #2563EB;
-    --primary-dark:  #1d4ed8;
-    --primary-light: #eff6ff;
+    /* Brand colours — platinum · dusk-blue · steel-blue · icy-blue · grey-olive */
+    --primary-color: #6096ba;   /* steel-blue */
+    --primary-dark:  #274c77;   /* dusk-blue */
+    --primary-light: #e7ecef;   /* platinum */
     --success-color: #16a34a;
     --success-light: #f0fdf4;
     --warning-color: #d97706;
     --warning-light: #fffbeb;
     --danger-color:  #dc2626;
     --danger-light:  #fef2f2;
-    --purple-color:  #2563EB;
-    --purple-light:  #eff6ff;
+    --purple-color:  #6096ba;   /* steel-blue */
+    --purple-light:  #e7ecef;   /* platinum */
 
     /* Surface colours */
-    --bg-page:   #f8fafc;
+    --bg-page:   #e7ecef;   /* platinum */
     --bg-card:   #FFFFFF;
-    --bg-input:  #f8fafc;
-    --bg-muted:  #f1f5f9;
+    --bg-input:  #f4f7f9;
+    --bg-muted:  #dce4e9;   /* darker platinum */
 
     /* Aliases kept for backward compat */
-    --light-bg:       #f8fafc;
-    --border-color:   #e2e8f0;
-    --text-dark:      #0f172a;
-    --text-light:     #64748B;
-    --text-muted:     #94a3b8;
+    --light-bg:       #e7ecef;   /* platinum */
+    --border-color:   #a3cef1;   /* icy-blue */
+    --text-dark:      #274c77;   /* dusk-blue */
+    --text-light:     #8b8c89;   /* grey-olive */
+    --text-muted:     #8b8c89;   /* grey-olive */
 
     /* Shadows */
     --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
