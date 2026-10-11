@@ -10,10 +10,7 @@
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+
 
 <!-- Month Filter -->
 <div class="filter-bar">
@@ -85,6 +82,7 @@
     </div>
     <div class="sheet-body">
         <form method="POST" action="/expenses/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Utilities ({{ currency }})</label><input type="number" name="utilities" step="0.01" min="0" placeholder="0.00"></div>
@@ -114,6 +112,7 @@
     <div class="sheet-header"><h3>Edit Expenses</h3><button class="sheet-close-btn" onclick="closeSheet('editExpenseSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editExpenseForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Utilities ({{ currency }})</label><input type="number" name="utilities" step="0.01" min="0" placeholder="0.00"></div>
@@ -143,6 +142,7 @@
     <div class="sheet-header"><h3>⚡ Quick Add Expense</h3><button class="sheet-close-btn" onclick="closeSheet('quickAddSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/expenses/quick-add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>Category</label>
                 <select name="category" required>
@@ -194,8 +194,8 @@
             <div class="detail-row total"><span class="dl">Total</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
             <div class="detail-actions">
                 <button class="btn-edit" onclick="editExpense(this)">✏️ Edit</button>
-                <a href="/expenses/delete/{{ r.id }}" class="btn-delete"
-                   onclick="return confirmDelete()">🗑 Delete</a>
+                <form method="POST" action="/expenses/delete/{{ r.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</button></form>
             </div>
         </div>
     </div>

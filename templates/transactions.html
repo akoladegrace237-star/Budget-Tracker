@@ -5,30 +5,31 @@
 <div class="page-header">
     <h1>📝 Transactions</h1>
     <div class="header-actions">
+        <a class="btn-sm" href="/import">Import CSV</a>
         <button class="btn-add" onclick="openSheet('addTransactionSheet')">+ Add</button>
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+
 
 <!-- Filters -->
+<p class="help-text">Investment transfers change tracked cash without counting as spending. Update the matching holding in Portfolio. Transfers between your own cash accounts do not change total cash. Record debt payments in Debt.</p>
 <div class="filter-bar">
     <form method="GET" action="/transactions" class="filter-form">
-        <select name="month" onchange="this.form.submit()">
+        <select name="month" aria-label="Filter by month" onchange="this.form.submit()">
             <option value="">All months</option>
             {% for m in months %}
             <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>{{ m }}</option>
             {% endfor %}
         </select>
-        <select name="type" onchange="this.form.submit()">
+        <select name="type" aria-label="Filter by transaction type" onchange="this.form.submit()">
             <option value="">All types</option>
             <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Income</option>
+            <option value="transfer" {% if filter_type == 'transfer' %}selected{% endif %}>Transfers / debt payments</option>
             <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Expense</option>
         </select>
-        {% if filter_month or filter_type %}
+<label class="sr-only" for="transactionSearch">Search descriptions</label><input id="transactionSearch" type="search" name="q" value="{{ search }}" placeholder="Search transactions"><button type="submit" class="btn-sm">Search</button>
+        {% if filter_month or filter_type or search %}
         <a href="/transactions" class="btn-sm btn-outline">Clear</a>
         {% endif %}
     </form>
@@ -57,7 +58,7 @@
 <div class="record-list">
     {% for r in records %}
     <div class="record-card" data-id="{{ r.id }}" data-date="{{ r.date }}" data-type="{{ r.type }}"
-         data-category="{{ r.category }}" data-description="{{ r.description }}" data-amount="{{ r.amount }}">
+         data-category="{{ r.category }}" data-description="{{ r.description }}" data-amount="{{ r.amount|abs }}">
         <div class="record-card-main" onclick="toggleRecord(this)">
             <div class="record-info">
                 <span class="record-name">{{ r.description or r.category|replace('_',' ')|title }}</span>
@@ -65,7 +66,7 @@
             </div>
             <div class="record-right">
                 <span class="record-amount {% if r.type == 'income' %}pos{% else %}neg{% endif %}">
-                    {% if r.type == 'income' %}+{% else %}-{% endif %}{{ currency }}{{ "%.2f"|format(r.amount) }}
+                    {% if r.type == 'income' or r.amount_minor<0 %}+{% else %}-{% endif %}{{ currency }}{{ "%.2f"|format(r.amount|abs) }}
                 </span>
                 <span class="record-chevron">›</span>
             </div>
@@ -75,10 +76,10 @@
             <div class="detail-row"><span class="dl">Type</span><span class="dv">{{ r.type|title }}</span></div>
             <div class="detail-row"><span class="dl">Category</span><span class="dv">{{ r.category|replace('_',' ')|title }}</span></div>
             {% if r.description %}<div class="detail-row"><span class="dl">Description</span><span class="dv">{{ r.description }}</span></div>{% endif %}
-            <div class="detail-row total"><span class="dl">Amount</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.amount) }}</span></div>
+            <div class="detail-row total"><span class="dl">Amount</span><span class="dv">{{ currency }}{{ "%.2f"|format(r.amount|abs) }}</span></div>
             <div class="detail-actions">
-                <button class="btn-edit" onclick="editTransaction(this)">✏️ Edit</button>
-                <a href="/transactions/delete/{{ r.id }}" class="btn-delete" onclick="return confirmDelete()">🗑 Delete</a>
+                {% if r.source not in ['bill','debt','migration'] %}<button class="btn-edit" onclick="editTransaction(this)">✏️ Edit</button>{% endif %}
+                <form method="POST" action="/transactions/delete/{{ r.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete" onclick="return confirmDelete()">🗑 Delete</button></form>
             </div>
         </div>
     </div>
@@ -97,20 +98,21 @@
     <div class="sheet-header"><h3>Add Transaction</h3><button class="sheet-close-btn" onclick="closeSheet('addTransactionSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/transactions/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="sheet-row">
                 <div class="form-group"><label>Date</label><input type="date" name="date" required></div>
                 <div class="form-group">
                     <label>Type</label>
                     <select name="type" required>
                         <option value="expense">Expense</option>
-                        <option value="income">Income</option>
+                        <option value="income">Income</option><option value="transfer">Investment transfer</option>
                     </select>
                 </div>
             </div>
             <div class="form-group">
                 <label>Category</label>
                 <select name="category" required>
-                    {% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                    {% for key, label in expense_categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
                 </select>
             </div>
             <div class="sheet-row">
@@ -128,20 +130,21 @@
     <div class="sheet-header"><h3>Edit Transaction</h3><button class="sheet-close-btn" onclick="closeSheet('editTransactionSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editTransactionForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="sheet-row">
                 <div class="form-group"><label>Date</label><input type="date" name="date" required></div>
                 <div class="form-group">
                     <label>Type</label>
                     <select name="type" required>
                         <option value="expense">Expense</option>
-                        <option value="income">Income</option>
+                        <option value="income">Income</option><option value="transfer">Investment transfer</option>
                     </select>
                 </div>
             </div>
             <div class="form-group">
                 <label>Category</label>
                 <select name="category" required>
-                    {% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                    {% for key, label in expense_categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
                 </select>
             </div>
             <div class="sheet-row">
@@ -159,16 +162,33 @@
 // Set default date to today
 document.addEventListener('DOMContentLoaded', function() {
     const dateInputs = document.querySelectorAll('input[type="date"]');
-    const today = new Date().toISOString().split('T')[0];
+    const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     dateInputs.forEach(i => { if (!i.value) i.value = today; });
+    document.querySelectorAll('.sheet-form').forEach(form => {
+        form.type.addEventListener('change', () => updateTransactionCategories(form));
+    });
+    const args = new URLSearchParams(location.search);
+    if (args.get('add') === '1') {
+        const form = document.querySelector('#addTransactionSheet form');
+        if (['income','expense','transfer'].includes(args.get('type'))) form.type.value = args.get('type');
+        updateTransactionCategories(form); openSheet('addTransactionSheet');
+    }
 });
 
+const incomeCategories = {{ income_categories|tojson }};
+const expenseCategories = {{ expense_categories|tojson }};
+const transferCategories = {{ transfer_categories|tojson }};
+function updateTransactionCategories(form) {
+    const choices = form.type.value === 'income' ? incomeCategories : form.type.value === 'transfer' ? transferCategories : expenseCategories;
+    form.category.replaceChildren(...choices.map(([value,label]) => new Option(label,value)));
+}
 function editTransaction(btn) {
     const card = btn.closest('.record-card');
     const form = document.getElementById('editTransactionForm');
     form.action = '/transactions/edit/' + card.dataset.id;
     form.date.value = card.dataset.date;
     form.type.value = card.dataset.type;
+    updateTransactionCategories(form);
     form.category.value = card.dataset.category;
     form.description.value = card.dataset.description || '';
     form.amount.value = card.dataset.amount;

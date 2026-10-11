@@ -2,7 +2,7 @@
 {% block title %}Debt Center — Budget Tracker{% endblock %}
 
 {% block extra_head %}
-<script>const CURRENCY = "{{ currency }}";</script>
+<script>const CURRENCY = {{ currency|tojson }};</script>
 {% endblock %}
 
 {% block content %}
@@ -30,15 +30,16 @@
                 <button class="debt-kebab-btn" onclick="toggleKebab(this)" aria-label="More options">&#8943;</button>
                 <div class="debt-kebab-menu">
                     <button class="kebab-option" onclick="editCredit(this)">Edit</button>
-                    <a class="kebab-option kebab-danger" href="/credit/delete/{{ card.id }}" onclick="return confirmDelete('Delete this card?')">Delete</a>
+                    <form method="POST" action="/credit/delete/{{ card.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"  class="kebab-option kebab-danger"  onclick="return confirmDelete('Delete this card?')">Delete</button></form>
                 </div>
             </div>
         </div>
         <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
         <form method="POST" action="/credit/pay">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="card_id" value="{{ card.id }}">
             <div class="pay-row">
-                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" aria-label="Payment amount for {{ card.name }}" required>
                 <button type="submit" class="pay-btn">Pay</button>
             </div>
         </form>
@@ -68,15 +69,16 @@
                 <button class="debt-kebab-btn" onclick="toggleKebab(this)" aria-label="More options">&#8943;</button>
                 <div class="debt-kebab-menu">
                     <button class="kebab-option" onclick="editLoan(this)">Edit</button>
-                    <a class="kebab-option kebab-danger" href="/loans/delete/{{ loan.id }}" onclick="return confirmDelete('Delete this loan?')">Delete</a>
+                    <form method="POST" action="/loans/delete/{{ loan.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"  class="kebab-option kebab-danger"  onclick="return confirmDelete('Delete this loan?')">Delete</button></form>
                 </div>
             </div>
         </div>
         <div class="debt-balance">{{ currency }}{{ "%.2f"|format(loan.balance) }}</div>
         <form method="POST" action="/loans/pay">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="loan_id" value="{{ loan.id }}">
             <div class="pay-row">
-                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
+                <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" aria-label="Payment amount for {{ loan.name }}" required>
                 <button type="submit" class="pay-btn">Pay</button>
             </div>
         </form>
@@ -107,7 +109,7 @@
             <span class="forecast-value neg" id="totalDebtAmt">{{ currency }}{{ "%.2f"|format(total_debt) }}</span>
         </div>
         <div class="forecast-item">
-            <span class="forecast-label">Monthly Payment</span>
+            <label for="totalBudgetInput" class="forecast-label">Monthly Payment</label>
             <input id="totalBudgetInput" class="payoff-budget-input" type="number"
                    min="0" step="10" placeholder="e.g. 500">
         </div>
@@ -173,6 +175,7 @@
     <div class="sheet-header"><h3>Add Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('addCreditSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/credit/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Card Name</label><input type="text" name="name" placeholder="e.g. Visa, Amex..." required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
@@ -189,6 +192,7 @@
     <div class="sheet-header"><h3>Edit Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('editCreditSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editCreditForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Card Name</label><input type="text" name="name" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>
@@ -205,6 +209,7 @@
     <div class="sheet-header"><h3>Add Loan</h3><button class="sheet-close-btn" onclick="closeSheet('addLoanSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/loans/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Loan Name</label><input type="text" name="name" placeholder="e.g. Student Loan, Car Loan..." required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
@@ -221,6 +226,7 @@
     <div class="sheet-header"><h3>Edit Loan</h3><button class="sheet-close-btn" onclick="closeSheet('editLoanSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editLoanForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Loan Name</label><input type="text" name="name" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>
@@ -236,6 +242,7 @@
 <script>
 const AVALANCHE_ORDER = {{ avalanche | tojson }};
 const SNOWBALL_ORDER  = {{ snowball  | tojson }};
+function escapeDebtName(value) { const el=document.createElement('span'); el.textContent=String(value); return el.innerHTML; }
 const ALL_DEBTS       = {{ debts     | tojson }};
 
 let currentStrategy = 'avalanche';
@@ -252,7 +259,7 @@ function fmt(n) {
 
 function amortize(debts, extraBudget) {
     let pool = debts.map((d, i) => ({
-        ...d, remaining: d.balance, totalInterest: 0, months: 0, idx: i,
+        ...d, balance: Number(d.balance), rate: Number(d.rate), remaining: Number(d.balance), totalInterest: 0, months: 0, idx: i,
     }));
     const minPayments = pool.map(d => {
         const el = document.querySelector(`.payoff-min-input[data-key="${ALL_DEBTS.findIndex(x => x.name === d.name && x.balance === d.balance)}"]`);
@@ -277,9 +284,13 @@ function amortize(debts, extraBudget) {
         if (leftoverBudget > 0) {
             const target = pool.find(d => d.remaining > 0);
             if (target) {
-                const pay = Math.min(leftoverBudget, target.remaining);
-                target.remaining -= pay;
-                if (target.remaining < 0.005) { target.remaining = 0; target.months = totalMonths; }
+                for (const debt of pool) {
+                    const pay = Math.min(leftoverBudget, debt.remaining);
+                    debt.remaining -= pay;
+                    leftoverBudget -= pay;
+                    if (debt.remaining < 0.005) { debt.remaining = 0; debt.months = debt.months || totalMonths; }
+                    if (leftoverBudget <= 0) break;
+                }
             }
         }
     }
@@ -291,6 +302,8 @@ function runCalculator() {
     const budget = parseFloat(document.getElementById('totalBudgetInput').value) || 0;
     if (budget <= 0) { alert('Please enter a monthly payment budget first.'); return; }
     const orderedDebts = currentStrategy === 'avalanche' ? AVALANCHE_ORDER : SNOWBALL_ORDER;
+    const minimumTotal = [...document.querySelectorAll('.payoff-min-input')].reduce((sum,el)=>sum+(Number(el.value)||0),0);
+    if (minimumTotal > budget) { alert('The monthly budget must cover your minimum payments.'); return; }
     const { pool, totalMonths } = amortize(orderedDebts, budget);
     renderResults(pool, totalMonths, budget);
 }
@@ -299,7 +312,7 @@ function renderResults(pool, totalMonths, budget) {
     const resultDiv = document.getElementById('payoffResults');
     resultDiv.style.display = '';
     const totalInterest = pool.reduce((s, d) => s + d.totalInterest, 0);
-    const totalPaid = pool.reduce((s, d) => s + d.totalInterest + d.balance, 0);
+    const totalPaid = pool.reduce((s, d) => s + d.totalInterest + d.balance - d.remaining, 0);
     const stratLabel = currentStrategy === 'avalanche' ? '🏔 Avalanche (Highest Rate First)' : '⛄ Snowball (Lowest Balance First)';
     document.getElementById('resultsTitle').textContent = `Payoff Plan — ${stratLabel}`;
     const grid = document.getElementById('payoffSummaryGrid');
@@ -313,13 +326,13 @@ function renderResults(pool, totalMonths, budget) {
     document.getElementById('payoffSchedule').innerHTML = pool.map((d, i) => `
         <div class="payoff-result-row">
             <div class="payoff-result-header">
-                <span class="payoff-debt-name">${d.name}</span>
+                <span class="payoff-debt-name">${escapeDebtName(d.name)}</span>
                 <span class="payoff-result-rank">#${i + 1} priority</span>
             </div>
             <div class="payoff-result-stats">
                 <div class="payoff-stat"><span class="payoff-stat-label">Paid off in</span><span class="payoff-stat-val">${d.months ? `${d.months} months` : '?'}</span></div>
                 <div class="payoff-stat"><span class="payoff-stat-label">Total interest</span><span class="payoff-stat-val neg">${fmt(d.totalInterest)}</span></div>
-                <div class="payoff-stat"><span class="payoff-stat-label">Total paid</span><span class="payoff-stat-val">${fmt(d.totalInterest + d.balance)}</span></div>
+                <div class="payoff-stat"><span class="payoff-stat-label">Total paid</span><span class="payoff-stat-val">${fmt(d.totalInterest + d.balance - d.remaining)}</span></div>
             </div>
         </div>`).join('');
     resultDiv.scrollIntoView({ behavior: 'smooth' });

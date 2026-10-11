@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2563EB">
+    <meta name="theme-color" content="#274c77">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Budget Tracker">
@@ -17,9 +18,11 @@
     <link rel="stylesheet" href="/styles.css">
     <!-- Flask-specific overrides -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/improvements.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+<a class="skip-link" href="#pageContent">Skip to content</a>
 
 <!-- PWA Install Banner -->
 <div id="installBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
@@ -46,6 +49,7 @@
             </div>
         </div>
         <div class="header-controls">
+            <a class="btn-add global-add" href="/transactions?add=1">+ Add transaction</a>
             <span class="header-username">👤 {{ session.get('username','') }}</span>
         </div>
     </header>
@@ -69,13 +73,15 @@
         ] %}
         <a href="/{{ path }}" class="tab-btn {% if request.path == '/' + path %}active{% endif %}">{{ label }}</a>
         {% endfor %}
-        <a href="/logout" class="tab-btn logout-tab-btn">🔒 Logout</a>
+        <form method="POST" action="/logout" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="tab-btn logout-tab-btn">🔒 Logout</button></form>
     </nav>
 
     <!-- Page Content -->
-    <div class="tab-content active" style="display:block!important">
+    <main id="pageContent" class="tab-content active" style="display:block!important">
+{% if session.get("upgrade_password") %}<div class="alert alert-warning">Your old PIN still works. <a href="/settings">Set a password of at least 12 characters and generate a recovery code.</a></div>{% endif %}
+{% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="alert alert-{{ category }}" role="status">{{ message }}</div>{% endfor %}{% endwith %}
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <footer>
         <p>Budget Tracker &copy; 2026 &mdash; Built for Financial Freedom</p>
@@ -96,8 +102,8 @@
         <a href="/recurring"  class="bnav-item {% if cur == '/recurring'  %}active{% endif %}">
             <span class="bnav-icon">🔄</span><span class="bnav-label">Bills</span>
         </a>
-        <button class="bnav-item {% if cur in ['/savings','/debt','/credit','/loans','/projections','/shares','/budgets','/debt-payoff','/settings'] %}active{% endif %}"
-                onclick="openMoreMenu()">
+        <button class="bnav-item {% if cur in ['/transactions','/import','/setup','/restore','/savings','/debt','/credit','/loans','/projections','/shares','/budgets','/debt-payoff','/settings'] %}active{% endif %}"
+                onclick="openMoreMenu()" aria-label="More sections" aria-controls="moreSheet" aria-expanded="false">
             <span class="bnav-icon">☰</span><span class="bnav-label">More</span>
         </button>
     </nav>
@@ -115,7 +121,7 @@
             <a href="/projections" class="more-item"><span class="more-item-icon">📊</span>Projections</a>
             <a href="/shares"      class="more-item"><span class="more-item-icon">📈</span>Portfolio</a>
             <a href="/settings"    class="more-item"><span class="more-item-icon">⚙️</span>Settings</a>
-            <a href="/logout"      class="more-item danger"><span class="more-item-icon">🔒</span>Logout</a>
+            <form method="POST" action="/logout" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"      class="more-item danger"><span class="more-item-icon">🔒</span>Logout</button></form>
         </div>
     </div>
 
@@ -126,11 +132,11 @@
 
 {% else %}
 <!-- Auth pages (no navbar) -->
-{{ self.content() }}
+<main id="pageContent">{{ self.content() }}</main>
 {% endif %}
 
 <!-- Toast container -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>

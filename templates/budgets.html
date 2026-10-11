@@ -92,6 +92,7 @@
     </div>
     <div class="sheet-body">
         <form method="POST" action="/budgets/save" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <p class="sheet-note">Enter 0 or leave blank = no limit for that category.</p>
             {% for key, label in categories %}
             <div class="form-group">

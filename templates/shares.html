@@ -9,10 +9,7 @@
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+<p class="help-text">Enter current holdings and their unit value. For new purchases or sales, record the cash movement as an investment transfer in Transactions and update your holdings here.</p>
 
 {% if investments %}
 {% set total_portfolio = namespace(val=0) %}
@@ -48,8 +45,8 @@
             {% if inv.date_bought %}<div class="detail-row"><span class="dl">Date Bought</span><span class="dv">{{ inv.date_bought }}</span></div>{% endif %}
             <div class="detail-actions">
                 <button class="btn-edit" onclick="editShare(this)">✏️ Edit</button>
-                <a href="/shares/delete/{{ inv.id }}" class="btn-delete"
-                   onclick="return confirmDelete()">🗑 Delete</a>
+                <form method="POST" action="/shares/delete/{{ inv.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</button></form>
             </div>
         </div>
     </div>
@@ -68,6 +65,7 @@
     <div class="sheet-header"><h3>Add Investment</h3><button class="sheet-close-btn" onclick="closeSheet('addShareSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/shares/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Stock / Asset Name</label><input type="text" name="name" placeholder="e.g. Apple (AAPL)" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Units / Shares</label><input type="number" name="units" step="0.0001" min="0" placeholder="0" required></div>
@@ -85,6 +83,7 @@
     <div class="sheet-header"><h3>Edit Investment</h3><button class="sheet-close-btn" onclick="closeSheet('editShareSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editShareForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Stock / Asset Name</label><input type="text" name="name" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Units / Shares</label><input type="number" name="units" step="0.0001" min="0" required></div>

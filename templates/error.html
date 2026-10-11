@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}Something needs attention{% endblock %}
+{% block content %}<section class="settings-section error-page" role="alert"><p class="eyebrow">{{ error.code }}</p><h1>{{ error.name }}</h1><p>{{ error.description }}</p><a class="btn-submit" href="{{ '/dashboard' if session.get('user_id') else '/login' }}">Return to {{ 'dashboard' if session.get('user_id') else 'sign in' }}</a></section>{% endblock %}

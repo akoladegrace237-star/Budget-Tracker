@@ -10,10 +10,7 @@
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+
 
 {% if cards %}
 <div class="debt-cards">
@@ -27,6 +24,7 @@
         <div class="debt-balance">{{ currency }}{{ "%.2f"|format(card.balance) }}</div>
         <div class="debt-actions">
             <form method="POST" action="/credit/pay">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="card_id" value="{{ card.id }}">
                 <div class="pay-row">
                     <input class="pay-input" type="number" name="amount" step="0.01" min="0.01" placeholder="Payment amount" required>
@@ -35,8 +33,8 @@
             </form>
             <div class="detail-actions">
                 <button class="btn-edit" onclick="editCredit(this)">✏️ Edit</button>
-                <a href="/credit/delete/{{ card.id }}" class="btn-delete"
-                   onclick="return confirmDelete('Delete this card?')">🗑 Delete</a>
+                <form method="POST" action="/credit/delete/{{ card.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                   onclick="return confirmDelete('Delete this card?')">🗑 Delete</button></form>
             </div>
         </div>
     </div>
@@ -55,6 +53,7 @@
     <div class="sheet-header"><h3>Add Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('addCreditSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/credit/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Card Name</label><input type="text" name="name" placeholder="e.g. Visa, Amex…" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" placeholder="0.00" required></div>
@@ -71,6 +70,7 @@
     <div class="sheet-header"><h3>Edit Credit Card</h3><button class="sheet-close-btn" onclick="closeSheet('editCreditSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editCreditForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Card Name</label><input type="text" name="name" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Interest Rate (%)</label><input type="number" name="rate" step="0.01" min="0" required></div>

@@ -13,15 +13,16 @@
         {% endif %}
 
         <form method="POST" action="/login" class="auth-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter your username" required
                        value="{{ remembered_user }}" {% if not remembered_user %}autofocus{% endif %}>
             </div>
             <div class="form-group">
-                <label for="pin">PIN</label>
-                <input type="password" id="pin" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4"
-                       placeholder="4-digit PIN" required {% if remembered_user %}autofocus{% endif %}>
+                <label for="pin">Password</label>
+                <input type="password" id="pin" name="pin" maxlength="128" autocomplete="current-password"
+                       placeholder="Password" required {% if remembered_user %}autofocus{% endif %}>
             </div>
             <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="checkbox" id="remember" name="remember" value="1"
@@ -31,7 +32,7 @@
             <button type="submit" class="btn btn-primary btn-full">Sign In</button>
         </form>
 
-        <p class="auth-switch"><a href="/forgot-pin">Forgot your PIN?</a></p>
+        <p class="auth-switch"><a href="/forgot-pin">Forgot your Password?</a></p>
         <p class="auth-switch">Don't have an account? <a href="/register">Register here</a></p>
     </div>
 </div>

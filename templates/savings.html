@@ -10,10 +10,7 @@
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+
 
 <!-- Savings Goals -->
 {% if goals %}
@@ -39,8 +36,8 @@
                 <div class="goal-pct">{{ "%.1f"|format(pct) }}% complete</div>
                 <div class="detail-actions" style="margin-top:8px;">
                     <button class="btn-edit" onclick="editGoal(this)">✏️ Edit</button>
-                    <a href="/savings/goal/delete/{{ g.id }}" class="btn-delete"
-                       onclick="return confirmDelete('Delete this goal?')">🗑 Delete</a>
+                    <form method="POST" action="/savings/goal/delete/{{ g.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                       onclick="return confirmDelete('Delete this goal?')">🗑 Delete</button></form>
                 </div>
             </div>
             {% endfor %}
@@ -73,8 +70,8 @@
             {% if r.notes   %}<div class="detail-row"><span class="dl">Notes</span>     <span class="dv">{{ r.notes }}</span></div>{% endif %}
             <div class="detail-actions">
                 <button class="btn-edit" onclick="editSavings(this)">✏️ Edit</button>
-                <a href="/savings/delete/{{ r.id }}" class="btn-delete"
-                   onclick="return confirmDelete()">🗑 Delete</a>
+                <form method="POST" action="/savings/delete/{{ r.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</button></form>
             </div>
         </div>
     </div>
@@ -93,6 +90,7 @@
     <div class="sheet-header"><h3>Add Savings Record</h3><button class="sheet-close-btn" onclick="closeSheet('addSavingsSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/savings/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Saved ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0" placeholder="0.00"></div>
@@ -119,6 +117,7 @@
     <div class="sheet-header"><h3>Add Savings Goal</h3><button class="sheet-close-btn" onclick="closeSheet('addGoalSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" action="/savings/goal/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Goal Name</label><input type="text" name="name" placeholder="e.g. Emergency Fund" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Target ({{ currency }})</label><input type="number" name="target" step="0.01" min="0" placeholder="0.00" required></div>
@@ -136,6 +135,7 @@
     <div class="sheet-header"><h3>Edit Savings Record</h3><button class="sheet-close-btn" onclick="closeSheet('editSavingsSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editSavingsForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Saved ({{ currency }})</label><input type="number" name="amount" step="0.01" min="0"></div>
@@ -162,6 +162,7 @@
     <div class="sheet-header"><h3>Edit Savings Goal</h3><button class="sheet-close-btn" onclick="closeSheet('editGoalSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editGoalForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Goal Name</label><input type="text" name="name" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Target ({{ currency }})</label><input type="number" name="target" step="0.01" min="0" required></div>

@@ -2,8 +2,8 @@
 {% block title %}Dashboard — Budget Tracker{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<script>window.CURRENCY = "{{ currency }}";</script>
+<script src="/static/js/vendor/chart.min.js"></script>
+<script>window.CURRENCY = {{ currency|tojson }};</script>
 {% endblock %}
 
 {% block content %}
@@ -15,17 +15,21 @@
     </div>
 </div>
 
+<div id="dashboardState" class="dashboard-state" role="status">Loading your budget…</div>
+<section class="cash-hero"><div><p class="eyebrow">This month · after spending and unpaid bills</p><h1>Remaining cash flow</h1><p class="cash-hero-amount" id="availableToSpend">—</p><p class="cash-hero-note">Based on income received, recorded spending, debt payments and unpaid bills. This is a monthly surplus, not your bank balance.</p></div><a class="btn-add" href="/transactions?add=1">+ Add transaction</a></section>
+<div id="setupNotice" class="alert alert-info" hidden>Set your starting cash to calculate net worth. <a href="/setup">Set up your budget →</a></div>
+<details class="migration-notice" id="migrationNotice" hidden><summary>Review imported legacy records</summary><p>Original records were retained. Reconciliation entries keep historical monthly totals consistent; review them in Transactions.</p><a href="/transactions?q=Legacy">View reconciliation entries</a></details>
 <!-- Net Worth Hero -->
 <div class="net-worth-hero">
     <div class="nw-label">
-        Total Net Worth
+        Tracked net worth
         <button class="nw-toggle-btn" id="nwToggleBtn" onclick="toggleNetWorth()" title="Show/hide net worth" aria-label="Toggle net worth visibility">
             <span id="nwEyeIcon">👁</span>
         </button>
     </div>
-    <div class="nw-amount" id="netWorthAmount">£0.00</div>
+    <div class="nw-amount" id="netWorthAmount">—</div>
     <div class="nw-meta">
-        <span class="nw-sub">Everything you own minus everything you owe</span>
+        <span class="nw-sub">Starting cash + cash movements + portfolio − debt</span>
     </div>
 </div>
 
@@ -40,37 +44,37 @@
     <div class="card income-card">
         <div class="card-icon">💰</div>
         <div class="card-content">
-            <h3>Income</h3>
-            <p class="amount" id="totalIncome">£0.00</p>
+            <h3>Income this month</h3>
+            <p class="amount" id="totalIncome">—</p>
             <div class="card-month-row">
                 <span class="card-month-tag">This month</span>
-                <span class="card-month-val positive" id="monthIncome">£0.00</span>
+                <span class="card-month-val positive" id="monthIncome">—</span>
             </div>
             <div class="card-balance-row" id="monthBalanceRow">
                 <span class="card-month-tag">Left over</span>
-                <span class="card-month-val" id="monthBalance">£0.00</span>
+                <span class="card-month-val" id="monthBalance">—</span>
             </div>
         </div>
     </div>
     <div class="card expense-card">
         <div class="card-icon">💸</div>
         <div class="card-content">
-            <h3>Spending</h3>
-            <p class="amount" id="totalExpenses">£0.00</p>
+            <h3>Spending this month</h3>
+            <p class="amount" id="totalExpenses">—</p>
             <div class="card-month-row">
                 <span class="card-month-tag">This month</span>
-                <span class="card-month-val danger" id="monthExpense">£0.00</span>
+                <span class="card-month-val danger" id="monthExpense">—</span>
             </div>
         </div>
     </div>
     <div class="card saving-card">
         <div class="card-icon">🏦</div>
         <div class="card-content">
-            <h3>Savings</h3>
-            <p class="amount" id="totalSavings">£0.00</p>
+            <h3>Savings contributions</h3>
+            <p class="amount" id="totalSavings">—</p>
             <div class="card-month-row">
                 <span class="card-month-tag">Invested</span>
-                <span class="card-month-val" id="totalInvestments">£0.00</span>
+                <span class="card-month-val" id="totalInvestments">—</span>
             </div>
         </div>
     </div>
@@ -78,7 +82,7 @@
         <div class="card-icon">🔻</div>
         <div class="card-content">
             <h3>Debt</h3>
-            <p class="amount" id="totalDebt">£0.00</p>
+            <p class="amount" id="totalDebt">—</p>
             <span class="card-trend" id="debtBreakdown">Credit cards + Loans</span>
         </div>
     </div>
@@ -86,16 +90,17 @@
         <div class="card-icon">📈</div>
         <div class="card-content">
             <h3>Portfolio</h3>
-            <p class="amount" id="totalPortfolioValue">£0.00</p>
+            <p class="amount" id="totalPortfolioValue">—</p>
             <span class="card-trend" id="portfolioCount">Stocks &amp; assets</span>
         </div>
     </div>
+    <div class="card cash-card"><div class="card-icon">💳</div><div class="card-content"><h3>Tracked cash balance</h3><p class="amount" id="cashBalance">—</p><span class="card-trend">From your starting balance</span></div></div>
 </div>
 
-<!-- Budget Health -->
+<!-- Monthly budget score -->
 <div class="budget-health-section">
     <div class="health-header">
-        <h3 class="section-title">Budget Health</h3>
+        <h3 class="section-title">Monthly budget score</h3>
         <span class="health-score-badge" id="healthScoreBadge">—</span>
     </div>
     <div class="health-bar-container">
@@ -104,7 +109,7 @@
         </div>
     </div>
     <p class="health-status" id="healthStatus">Loading...</p>
-    <p class="health-explainer">Based on how much you save, spend within budget, and manage debt.</p>
+    <p class="health-explainer">A tracker score: 60% monthly surplus after unpaid bills and debt payments and 40% staying within category limits. Unset limits earn no budget points.</p>
 </div>
 
 <!-- Budget Status (populated by dashboard.js) -->
@@ -134,7 +139,7 @@
     <div class="chart-wrapper">
         <h3 class="chart-title">Income vs Expenses</h3>
         <div class="chart-container chart-container--canvas">
-            <canvas id="incomeVsExpenseChart"></canvas>
+            <canvas id="incomeVsExpenseChart" role="img" aria-label="Income and spending over the latest six recorded months. Detailed figures are available in Projections."></canvas>
         </div>
     </div>
 </div>
@@ -143,7 +148,7 @@
 <div class="chart-wrapper" style="margin-bottom:20px;">
     <h3 class="chart-title">Expense Breakdown</h3>
     <div class="chart-container" style="height:250px;">
-        <canvas id="expenseBreakdownChart"></canvas>
+        <canvas id="expenseBreakdownChart" role="img" aria-label="Recorded spending by category. Category figures are available in Expenses."></canvas>
     </div>
 </div>
 
@@ -155,11 +160,12 @@
     </div>
 </div>
 
+<form method="POST" action="/snapshot" class="snapshot-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-sm" type="submit">Save this month’s net worth snapshot</button><span class="help-text">Snapshots are saved when you choose, rather than when a page is viewed.</span></form>
 <!-- Net Worth Trend -->
 <div class="chart-wrapper" id="netWorthChartSection" style="margin-bottom:20px;display:none;">
     <h3 class="chart-title">📈 Net Worth Over Time</h3>
     <div class="chart-container" style="height:250px;">
-        <canvas id="netWorthTrendChart"></canvas>
+        <canvas id="netWorthTrendChart" role="img" aria-label="Saved monthly net worth snapshots. Detailed figures are available in Projections."></canvas>
     </div>
 </div>
 {% endblock %}
@@ -170,6 +176,7 @@
 // ── Net Worth visibility toggle ──────────────────────────────
 let _nwHidden = localStorage.getItem('nwHidden') === 'true';
 let _nwValue  = '';
+window.clearNwValue = () => { _nwValue = '—'; };
 
 // Called by dashboard.js after it sets the real value via fetch
 function applyNwMask() {

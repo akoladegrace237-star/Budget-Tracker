@@ -9,10 +9,7 @@
     </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}<div class="flash-messages">
-{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
-</div>{% endif %}{% endwith %}
+
 
 <!-- Month Filter -->
 <div class="filter-bar">
@@ -55,8 +52,8 @@
             <div class="detail-row total"><span class="dl">Total</span><span class="dv">{{ currency }}{{ "%.2f"|format(total) }}</span></div>
             <div class="detail-actions">
                 <button class="btn-edit" onclick="editIncome(this)">✏️ Edit</button>
-                <a href="/income/delete/{{ r.id }}" class="btn-delete"
-                   onclick="return confirmDelete()">🗑 Delete</a>
+                <form method="POST" action="/income/delete/{{ r.id }}" class="inline-action"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit"   class="btn-delete"
+                   onclick="return confirmDelete()">🗑 Delete</button></form>
             </div>
         </div>
     </div>
@@ -78,6 +75,7 @@
     </div>
     <div class="sheet-body">
         <form method="POST" action="/income/add" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>Month</label>
                 <input type="month" name="month" value="{{ now }}" required>
@@ -106,6 +104,7 @@
     <div class="sheet-header"><h3>Edit Income</h3><button class="sheet-close-btn" onclick="closeSheet('editIncomeSheet')">✕</button></div>
     <div class="sheet-body">
         <form method="POST" id="editIncomeForm" class="sheet-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>Month</label><input type="month" name="month" required></div>
             <div class="sheet-row">
                 <div class="form-group"><label>Salary ({{ currency }})</label><input type="number" name="salary" step="0.01" min="0" placeholder="0.00"></div>

@@ -13,20 +13,16 @@
         {% endif %}
 
         <form method="POST" action="/register" class="auth-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus>
             </div>
             <div class="form-group">
-                <label for="pin">4-Digit PIN</label>
-                <input type="password" id="pin" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4"
-                       placeholder="e.g. 1234" required>
-                <small style="color:var(--text-secondary,#888);">Choose a 4-digit number you'll remember</small>
-            </div>
-            <div class="form-group">
-                <label for="security_answer">Security Question: What is your favourite colour?</label>
-                <input type="text" id="security_answer" name="security_answer" placeholder="e.g. Blue" required>
-                <small style="color:var(--text-secondary,#888);">Used to reset your PIN if you forget it</small>
+                <label for="pin">Password</label>
+                <input type="password" id="pin" name="pin" minlength="12" maxlength="128" autocomplete="new-password"
+                       placeholder="At least 12 characters" required>
+                <small style="color:var(--text-secondary,#888);">Choose a password of at least 12 characters you'll remember</small>
             </div>
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
         </form>

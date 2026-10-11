@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}{{ kind|title }} — Budget Tracker{% endblock %}
+{% block content %}
+<div class="page-header"><div><p class="eyebrow">Monthly overview</p><h1>{{ 'Income' if kind=='income' else 'Expenses' }}</h1></div><a href="/transactions?type={{ kind }}&add=1" class="btn-add">+ Add {{ kind }}</a></div>
+<form class="filter-bar" method="GET"><label for="summaryMonth">Month</label><input id="summaryMonth" type="month" name="month" value="{{ month }}" required><button class="btn-sm" type="submit">View</button></form>
+<section class="overview-total"><p>{{ month }} total</p><h2>{{ currency }}{{ '%.2f'|format(total) }}</h2><p>Every figure comes from your transactions.</p></section>
+<div class="record-list">{% for key,label in categories %}<a class="summary-category" href="/transactions?month={{ month }}&type={{ kind }}"><span>{{ label }}</span><strong>{{ currency }}{{ '%.2f'|format(amounts.get(key,0)) }}</strong></a>{% endfor %}</div>
+<p class="help-text">Edit individual entries in <a href="/transactions?month={{ month }}&type={{ kind }}">Transactions</a>. Budgets and charts update automatically.</p>
+{% endblock %}

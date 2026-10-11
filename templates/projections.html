@@ -2,7 +2,7 @@
 {% block title %}Projections — Budget Tracker{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/vendor/chart.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -11,23 +11,23 @@
     <p class="page-subtitle">Based on your last 6 months of data</p>
 </div>
 
-<div class="charts-grid">
-    <div class="card">
+<div class="reports-grid">
+    <div class="card report-card">
         <div class="card-header"><h2>Income Trend</h2></div>
-        <div class="card-body">
+        <div class="card-body report-chart">
             <canvas id="incomeChart" height="300"></canvas>
         </div>
     </div>
-    <div class="card">
+    <div class="card report-card">
         <div class="card-header"><h2>Expense Trend</h2></div>
-        <div class="card-body">
+        <div class="card-body report-chart">
             <canvas id="expenseChart" height="300"></canvas>
         </div>
     </div>
 </div>
 
 {% if nw_labels and nw_labels|length > 0 %}
-<div class="card" style="margin-bottom:20px;">
+<div class="card report-card" style="margin-bottom:20px;">
     <div class="card-header"><h2>📈 Net Worth Over Time</h2></div>
     <div class="card-body">
         <canvas id="netWorthChart" height="300"></canvas>
@@ -36,7 +36,7 @@
 {% endif %}
 
 {% if income_labels %}
-<div class="card">
+<div class="card report-card">
     <div class="card-header"><h2>Summary Table</h2></div>
     <div class="card-body">
         <div class="table-responsive">
@@ -62,8 +62,9 @@
     </div>
 </div>
 {% else %}
-    <div class="card"><div class="card-body"><p class="empty-state">No data yet. Add income and expenses to see projections.</p></div></div>
+    <div class="card report-card"><div class="card-body"><p class="empty-state">No data yet. Add income and expenses to see projections.</p></div></div>
 {% endif %}
+<section class="settings-section"><h2>12-month forecast</h2><p class="help-text">A simple scenario using average income and non-bill spending from the last six recorded months, plus your current monthly recurring bills. It assumes unchanged amounts and excludes investment returns and future debt payments.</p><div class="table-responsive"><table class="data-table"><thead><tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net cash flow</th></tr></thead><tbody>{% for row in forecasts %}<tr><td>{{ row.month }}</td><td>{{ currency }}{{ '%.2f'|format(row.income) }}</td><td>{{ currency }}{{ '%.2f'|format(row.expenses) }}</td><td>{{ currency }}{{ '%.2f'|format(row.net) }}</td></tr>{% endfor %}</tbody></table></div></section>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -86,7 +87,7 @@ new Chart(document.getElementById('incomeChart'), {
             fill: true
         }]
     },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'bottom' } } }
 });
 
 new Chart(document.getElementById('expenseChart'), {
@@ -102,7 +103,7 @@ new Chart(document.getElementById('expenseChart'), {
             fill: true
         }]
     },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'bottom' } } }
 });
 
 // Net Worth Over Time
@@ -124,7 +125,7 @@ if (nwLabels.length > 0 && document.getElementById('netWorthChart')) {
                 pointBackgroundColor: '#06C270'
             }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'bottom' } } }
     });
 }
 </script>

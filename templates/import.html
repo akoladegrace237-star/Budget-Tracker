@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Import transactions{% endblock %}
+{% block content %}
+<div class="page-header"><div><p class="eyebrow">Bring your history</p><h1>Import transactions</h1><p>Preview your CSV before adding any records.</p></div></div>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+<section class="settings-section"><p>Use columns <code>date,type,category,description,amount</code>. Dates use YYYY-MM-DD, type is income or expense, and amounts are positive with up to two decimal places.</p><pre class="csv-example">date,type,category,description,amount
+2026-10-01,expense,groceries,Weekly shop,45.20
+2026-10-01,income,salary,Salary,2500.00</pre><p class="help-text">Income categories: salary, bonus, side, rental, dividends, gifts, other. Expense categories: housing, utilities, groceries, dining_out, transport, shopping, healthcare, entertainment, personal_care, subscriptions, other.</p>
+<form method="POST" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-group"><label for="csvFile">CSV file (up to 5 MB)</label><input id="csvFile" name="file" type="file" accept=".csv,text/csv" required></div><button class="btn-submit" type="submit">Preview import</button></form></section>
+{% if token %}<section class="settings-section"><h2>{{ count }} new transactions</h2><p>{{ duplicates }} matching rows skipped. Duplicate detection compares date, type, category, description and amount; review identical genuine purchases separately.</p><div class="table-responsive"><table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.date }}</td><td>{{ row.type }}</td><td>{{ row.category }}</td><td>{{ row.description }}</td><td>{{ currency }}{{ '%.2f'|format(row.amount_minor/100) }}</td></tr>{% endfor %}</tbody></table></div>{% if count>50 %}<p>Showing the first 50 rows.</p>{% endif %}<form method="POST" action="/import/confirm"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="token" value="{{ token }}"><button class="btn-submit" type="submit" {% if not count %}disabled{% endif %}>Import {{ count }} transactions</button></form></section>{% endif %}
+{% endblock %}

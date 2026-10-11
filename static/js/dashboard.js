@@ -5,6 +5,7 @@
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const CURRENCY = window.CURRENCY || '£';
+function escapeHTML(value) { const el = document.createElement('span'); el.textContent = String(value ?? ''); return el.innerHTML; }
 
 function fmt(n) {
     return CURRENCY + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,11 +30,15 @@ function setGreeting(username) {
 
 function populateCards(data) {
     const t = data.totals;
+    setText('availableToSpend', fmt(data.cash_flow_forecast.balance));
+    document.getElementById('setupNotice').hidden = data.setup_complete;
+    document.getElementById('migrationNotice').hidden = !data.migration_notes.length;
     setText('netWorthAmount',          fmt(t.net_worth));
     if (window.applyNwMask) window.applyNwMask();
-    setText('totalIncome',             fmt(t.income));
-    setText('totalExpenses',           fmt(t.expenses));
+    setText('totalIncome',             fmt(data.current_month.income));
+    setText('totalExpenses',           fmt(data.current_month.expense));
     setText('totalSavings',            fmt(t.savings));
+    setText('cashBalance', fmt(t.cash));
     setText('totalInvestments',        fmt(t.investments));
     setText('totalDebt',               fmt(t.debt));
     setText('totalPortfolioValue',     fmt(t.portfolio));
@@ -71,8 +76,8 @@ function populateHealth(score) {
     fill.style.width = score + '%';
 
     let label, color, msg;
-    if (score >= 80)      { label = 'Excellent'; color = '#06C270'; msg = '🌟 Excellent financial health! Keep it up.'; }
-    else if (score >= 60) { label = 'Good';      color = '#4361EE'; msg = '👍 Good financial health. A few tweaks could make it great.'; }
+    if (score >= 80)      { label = 'Excellent'; color = '#06C270'; msg = '🌟 Your tracked monthly budget is in good shape.'; }
+    else if (score >= 60) { label = 'Good';      color = '#4361EE'; msg = '👍 Your cash flow and category limits are mostly on track.'; }
     else if (score >= 40) { label = 'Fair';      color = '#FFCB47'; msg = '⚠️ Fair health. Focus on increasing your savings rate.'; }
     else                  { label = 'Needs Work';color = '#EF4444'; msg = '🔴 Needs attention. Consider reducing expenses or increasing income.'; }
 
@@ -98,7 +103,7 @@ function populateGoals(goals) {
         return `
         <div class="dg-goal-item">
             <div class="dg-goal-top">
-                <span class="dg-goal-name">${g.name}</span>
+                <span class="dg-goal-name">${escapeHTML(g.name)}</span>
                 <span class="dg-goal-pct">${pct.toFixed(0)}%</span>
             </div>
             <div class="dg-progress-bar">
@@ -125,16 +130,16 @@ function formatBillDue(dueDay, isPaid) {
         // Already paid this month → show NEXT month's due date
         const nextMo   = mo === 11 ? 0 : mo + 1;
         const nextYr   = mo === 11 ? yr + 1 : yr;
-        const nextDate = new Date(nextYr, nextMo, dueDay);
+        const nextDate = new Date(nextYr, nextMo, Math.min(dueDay, new Date(nextYr,nextMo+1,0).getDate()));
         return `<span class="bill-due-tag next-month">Next due ${nextDate.toLocaleDateString('en-GB', opts)}</span>`;
     } else {
         // Not yet paid — due this month
         if (dueDay < today) {
-            const d = new Date(yr, mo, dueDay);
+            const d = new Date(yr, mo, Math.min(dueDay,new Date(yr,mo+1,0).getDate()));
             return `<span class="bill-due-tag overdue">Overdue (${d.toLocaleDateString('en-GB', opts)})</span>`;
         } else {
-            const d = new Date(yr, mo, dueDay);
-            const diff = dueDay - today;
+            const d = new Date(yr, mo, Math.min(dueDay,new Date(yr,mo+1,0).getDate()));
+            const diff = Math.min(dueDay,new Date(yr,mo+1,0).getDate()) - today;
             const urgency = diff <= 3 ? ' urgent' : '';
             return `<span class="bill-due-tag${urgency}">Due ${d.toLocaleDateString('en-GB', opts)}</span>`;
         }
@@ -153,15 +158,15 @@ function populateBills(bills) {
     container.innerHTML = bills.map(b => `
         <div class="bill-item${b.paid ? ' bill-paid' : ''}">
             <div class="bill-left">
-                <span class="bill-name">${b.name}</span>
-                <span class="bill-category badge">${b.category}</span>
+                <span class="bill-name">${escapeHTML(b.name)}</span>
+                <span class="bill-category badge">${escapeHTML(b.category)}</span>
                 ${formatBillDue(b.due_day, b.paid)}
             </div>
             <div class="bill-right">
                 <span class="bill-amount">${fmt(b.amount)}</span>
                 ${b.paid
                     ? '<span class="bill-status status-paid">✅ Paid</span>'
-                    : `<button class="bill-pay-btn" onclick="markBillPaid(${b.id}, '${b.name}')">Mark Paid</button>`
+                    : `<button class="bill-pay-btn" data-pay-bill="${b.id}">Mark Paid</button>`
                 }
             </div>
         </div>
@@ -209,7 +214,8 @@ function buildCharts(data) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                animation: false,
+                maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom' } },
                 scales: { y: { beginAtZero: true } }
             }
@@ -241,6 +247,7 @@ function buildCharts(data) {
                 },
                 options: {
                     responsive: true,
+                animation: false,
                     maintainAspectRatio: false,
                     plugins: { legend: { position: 'bottom' } }
                 }
@@ -317,14 +324,14 @@ function populateBillAlerts(bills) {
     const today = new Date().getDate();
     const urgent = bills.filter(b => {
         const diff = b.due_day - today;
-        return diff >= 0 && diff <= 3;
+        return b.days_until <= 5;
     });
 
     if (urgent.length === 0) { banner.style.display = 'none'; return; }
 
     const total = urgent.reduce((s, b) => s + (b.amount || 0), 0);
     const names = urgent.map(b => b.name).join(', ');
-    textEl.textContent = `${urgent.length} bill${urgent.length > 1 ? 's' : ''} due within 3 days: ${names} (${fmt(total)})`;
+    textEl.textContent = `${urgent.length} bill${urgent.length > 1 ? 's' : ''} overdue or due within 5 days: ${names} (${fmt(total)})`;
     banner.style.display = 'flex';
 }
 
@@ -359,6 +366,7 @@ function buildNetWorthChart(history) {
         },
         options: {
             responsive: true,
+                animation: false,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: { y: { beginAtZero: false } }
@@ -370,7 +378,10 @@ function buildNetWorthChart(history) {
 
 async function loadDashboard() {
     try {
-        const res  = await fetch('/api/dashboard-data');
+        const state = document.getElementById('dashboardState');
+        state.textContent = 'Loading your budget…'; state.hidden = false;
+        const res  = await fetch('/api/dashboard-data', {cache:'no-store'});
+        if (!res.ok) throw new Error('Unable to load your budget');
         const data = await res.json();
 
         setGreeting(data.username);
@@ -380,10 +391,16 @@ async function loadDashboard() {
         populateGoals(data.savings_goals || []);
         populateBills(data.upcoming_bills || []);
         populateBillAlerts(data.bill_alerts || data.upcoming_bills || []);
-        buildCharts(data);
-        buildNetWorthChart(data.net_worth_history || []);
+        state.hidden = true;
+        if (typeof Chart !== 'undefined') buildCharts(data);
+        if (typeof Chart !== 'undefined') buildNetWorthChart(data.net_worth_history || []);
     } catch (err) {
-        console.error('Dashboard data fetch failed:', err);
+        const state = document.getElementById('dashboardState'); state.hidden = false;
+        state.innerHTML = '<span>Unable to load your budget. Check your connection.</span> <button class="btn-sm" type="button" id="retryDashboard">Retry</button>';
+        document.getElementById('retryDashboard').addEventListener('click',loadDashboard);
+        ['availableToSpend','netWorthAmount','cashBalance','totalIncome','totalExpenses','totalSavings','totalInvestments','totalDebt','totalPortfolioValue','monthIncome','monthExpense','monthBalance'].forEach(id => setText(id,'—'));
+        if (window.clearNwValue) window.clearNwValue();
+        setText('healthStatus','Unavailable until your budget loads.');
     }
 }
 
@@ -392,11 +409,13 @@ async function loadDashboard() {
 async function markBillPaid(billId, billName) {
     if (!confirm(`Mark "${billName}" as paid for this month?`)) return;
     try {
-        await fetch(`/recurring/mark-paid/${billId}`);
+        const response = await fetch(`/recurring/mark-paid/${billId}`, {method:'POST',headers:{'X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content, 'Accept':'application/json'}});
+        if (!response.ok) throw new Error('Payment could not be saved. Reload and try again.');
         loadDashboard();   // refresh all dashboard data
     } catch (err) {
-        console.error('Failed to mark bill paid:', err);
+        alert(err.message || 'Payment could not be saved. Try again.');
     }
 }
 
 document.addEventListener('DOMContentLoaded', loadDashboard);
+document.addEventListener('click', event => { const button = event.target.closest('[data-pay-bill]'); if (button) markBillPaid(Number(button.dataset.payBill), button.closest('.bill-item').querySelector('.bill-name').textContent); });

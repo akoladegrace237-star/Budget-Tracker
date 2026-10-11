@@ -8,6 +8,19 @@ Otherwise, falls back to SQLite.
 
 import os
 import sqlite3
+from pathlib import Path
+from datetime import datetime
+from threading import RLock
+
+_init_lock = RLock()
+DB_PATH = Path(os.environ.get("BUDGET_DB_PATH") or str(Path(__file__).parent / "database.db"))
+
+class SQLiteConnection(sqlite3.Connection):
+    def __exit__(self, *args):
+        try:
+            return super().__exit__(*args)
+        finally:
+            self.close()
 
 try:
     import psycopg2
@@ -94,6 +107,9 @@ class PgConnectionWrapper:
     def commit(self):
         self._conn.commit()
 
+    def rollback(self):
+        self._conn.rollback()
+
     def close(self):
         self._conn.close()
 
@@ -101,6 +117,7 @@ class PgConnectionWrapper:
         return self
 
     def __exit__(self, *args):
+        if args[0]: self.rollback()
         self.close()
 
 
@@ -109,38 +126,59 @@ class PgConnectionWrapper:
 def get_db():
     """Return a DB connection (PostgreSQL or SQLite)."""
     url = _get_database_url()
+    if url and not HAS_PSYCOPG2:
+        raise RuntimeError("DATABASE_URL is set but PostgreSQL support is unavailable.")
     if url and HAS_PSYCOPG2:
         conn = psycopg2.connect(url)
-        return PgConnectionWrapper(conn)
+        return _track_connection(PgConnectionWrapper(conn))
     else:
-        conn = sqlite3.connect("database.db")
+        conn = sqlite3.connect(str(DB_PATH), timeout=30, factory=SQLiteConnection)
         conn.row_factory = sqlite3.Row
-        return conn
+        conn.execute("PRAGMA foreign_keys=ON")
+        return _track_connection(conn)
+
+def _track_connection(conn):
+    from flask import g,has_request_context
+    if has_request_context():
+        if 'db_connections' not in g: g.db_connections=[]
+        g.db_connections.append(conn)
+    return conn
 
 
 def is_postgres():
     return bool(_get_database_url() and HAS_PSYCOPG2)
 
+def lock_user(conn,user_id):
+    """Serialize one user's financial writes, including imports and restore."""
+    if is_postgres():
+        conn.execute('SELECT pg_advisory_xact_lock(740322,?)',(int(user_id),))
+    elif not conn.in_transaction:
+        conn.execute('BEGIN IMMEDIATE')
 
-def init_db():
+
+def _init_db():
     """Create all tables if they don't yet exist."""
+    conn = None
     try:
         conn = get_db()
         c = conn.cursor()
 
         if is_postgres():
-            print("[DB] Using PostgreSQL:", _get_database_url()[:30] + "...")
+            print("[DB] Using PostgreSQL")
+            c.execute("SELECT pg_advisory_xact_lock(740321)")
             _init_postgres(c)
         else:
-            print("[DB] Using SQLite: database.db")
+            conn.execute('BEGIN IMMEDIATE')
             _init_sqlite(c)
 
+        from migrations import migrate
+        migrate(conn, is_postgres())
         conn.commit()
-        conn.close()
-        print("[OK] Database initialized successfully.")
     except Exception as e:
-        print(f"[ERROR] Database initialization failed: {e}")
+        if conn: conn.rollback()
         raise
+    finally:
+        if conn: conn.close()
 
 
 def _init_sqlite(c):
@@ -397,10 +435,7 @@ def _init_postgres(c):
             date_added      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    try:
-        c.execute("ALTER TABLE recurring ADD COLUMN last_paid_month TEXT")
-    except Exception:
-        pass
+    c.execute("ALTER TABLE recurring ADD COLUMN IF NOT EXISTS last_paid_month TEXT")
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS savings (
@@ -514,3 +549,18 @@ def _init_postgres(c):
             UNIQUE(user_id, month)
         )
     ''')
+
+
+def init_db():
+    with _init_lock:
+        # Back up an existing local database before its first ledger migration.
+        if not _get_database_url() and DB_PATH.exists():
+            with sqlite3.connect(str(DB_PATH), factory=SQLiteConnection) as conn:
+                migrated = conn.execute("SELECT name FROM sqlite_master WHERE name='schema_migrations'").fetchone()
+                if not migrated:
+                    folder = DB_PATH.parent / 'backups'
+                    folder.mkdir(exist_ok=True)
+                    backup = folder / ('before-ledger-' + datetime.now().strftime('%Y%m%d-%H%M%S') + '.db')
+                    with sqlite3.connect(str(backup), factory=SQLiteConnection) as target:
+                        conn.backup(target)
+        _init_db()
