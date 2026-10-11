@@ -11,10 +11,18 @@ from flask import abort, request, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from finance import cents, valid_date, valid_month, fixed_decimal
 
+def normalize_credential(value):
+    stripped=value.strip()
+    return stripped if stripped.isdigit() and len(stripped)==4 else value
+
 def hash_password(value):
-    return generate_password_hash(value, method='scrypt')
+    return generate_password_hash(normalize_credential(value), method='scrypt')
 
 def verify_password(stored, value):
+    # Legacy registration/login stripped PIN whitespace. Retain that behaviour
+    # after the same four-digit credential is upgraded to a salted hash, while
+    # preserving intentional whitespace in modern passwords.
+    value=normalize_credential(value)
     if len(stored) == 64 and ':' not in stored:
         return hmac.compare_digest(stored, hashlib.sha256(value.encode()).hexdigest())
     return check_password_hash(stored, value)

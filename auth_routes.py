@@ -1,8 +1,8 @@
 """Credential migration, recovery codes and authenticated session lifecycle."""
 import secrets
-from flask import Blueprint, request, session, render_template, redirect, abort, flash
-from db import get_db
-from security import hash_password, verify_password, strong_password, throttle
+from flask import Blueprint, request, session, render_template, redirect, abort, flash, current_app
+from db import get_db, is_postgres
+from security import hash_password, verify_password, strong_password, throttle, normalize_credential
 
 auth = Blueprint('auth', __name__)
 
@@ -28,12 +28,21 @@ def register():
 def login():
     remembered=request.cookies.get('remembered_user','')
     if request.method=='POST':
-        username=request.form.get('username','').strip(); password=request.form.get('pin','')
+        username=request.form.get('username','').strip()
+        # Older cached forms used "password"; current forms retain "pin" so
+        # existing PIN users and saved browser credentials continue to work.
+        password=request.form.get('pin')
+        if password is None:
+            password=request.form.get('password','')
+        password=normalize_credential(password)
         with get_db() as conn:
             if not throttle(conn,username): abort(429,description='Too many sign-in attempts. Try again in 15 minutes.')
             user=conn.execute('SELECT * FROM users WHERE username=?',(username,)).fetchone()
             valid=verify_password(user['password'],password) if user else verify_password(hash_password('dummy-credential'),password)
             if not user or not valid:
+                current_app.logger.warning('Sign-in rejected: %s; database=%s',
+                    'account not found' if not user else 'credential mismatch',
+                    'PostgreSQL' if is_postgres() else 'SQLite')
                 return render_template('login.html',error='Invalid username or password.',remembered_user=remembered),401
             if len(user['password'])==64:
                 conn.execute('UPDATE users SET password=? WHERE id=?',(hash_password(password),user['id']))

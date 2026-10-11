@@ -292,6 +292,38 @@ class BudgetTests(unittest.TestCase):
             self.assertIsInstance(data['totals']['cash'],float)
             self.assertEqual(self.client.get('/projections').status_code,200)
 
+    def test_old_pin_can_login_again_after_hash_upgrade(self):
+        with db.get_db() as conn:
+            conn.execute('UPDATE users SET password=? WHERE id=1',(hashlib.sha256(b'1234').hexdigest(),));conn.commit()
+        self.assertEqual(self.post('/login',username='tester',pin=' 1234 ').status_code,302)
+        with self.client.session_transaction() as s: s.clear()
+        page=self.client.get('/login').get_data(as_text=True)
+        token=re.search(r'name="csrf_token" value="([^"]+)"',page)[1]
+        response=self.client.post('/login',data=dict(username='tester',pin='1234',csrf_token=token))
+        self.assertEqual(response.status_code,302)
+        with db.get_db() as conn:
+            self.assertTrue(conn.execute('SELECT password FROM users WHERE id=1').fetchone()['password'].startswith('scrypt:'))
+
+    def test_cached_password_field_still_signs_in(self):
+        response=self.post('/login',username='tester',password='secure-test-password')
+        self.assertEqual(response.status_code,302)
+
+    def test_modern_password_whitespace_is_preserved(self):
+        stored=hash_password('  a-long-password  ')
+        self.assertTrue(verify_password(stored,'  a-long-password  '))
+        self.assertFalse(verify_password(stored,'a-long-password'))
+
+    def test_plaintext_database_edit_is_rejected_and_hash_repairs_account(self):
+        password='manually-reset-password'
+        with db.get_db() as conn:
+            conn.execute('UPDATE users SET password=? WHERE id=1',(password,));conn.commit()
+        self.assertEqual(self.post('/login',username='tester',pin=password).status_code,401)
+        with db.get_db() as conn:
+            conn.execute('UPDATE users SET password=?,credential_version=credential_version+1 WHERE id=1',(hash_password(password),));conn.commit()
+        with self.client.session_transaction() as s:
+            s.clear();s['csrf_token']='test-csrf'
+        self.assertEqual(self.post('/login',username='tester',pin=password).status_code,302)
+
 class MigrationTests(unittest.TestCase):
     def test_legacy_summary_reconciliation_is_once_and_retains_originals(self):
         with WorkspaceTemp() as folder:

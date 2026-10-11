@@ -17,12 +17,13 @@
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter your username" required
-                       value="{{ remembered_user }}" {% if not remembered_user %}autofocus{% endif %}>
+                       value="{{ remembered_user }}" autocomplete="username" {% if not remembered_user %}autofocus{% endif %}>
             </div>
             <div class="form-group">
-                <label for="pin">Password</label>
+                <label for="pin">Password or existing PIN</label>
                 <input type="password" id="pin" name="pin" maxlength="128" autocomplete="current-password"
-                       placeholder="Password" required {% if remembered_user %}autofocus{% endif %}>
+                       placeholder="Your password or original 4-digit PIN" required {% if remembered_user %}autofocus{% endif %}>
+                <small>Existing account? Your original PIN still works. The Railway SECRET_KEY is not your sign-in password.</small>
             </div>
             <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="checkbox" id="remember" name="remember" value="1"

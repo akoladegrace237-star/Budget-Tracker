@@ -16,6 +16,10 @@ Open http://127.0.0.1:5000, create an account, save your recovery code and compl
 
 Local development creates an ignored `.local-secret` to keep sessions valid across restarts. Debug mode is off unless `FLASK_DEBUG=1` is explicitly set. `.env.example` documents environment variables; the app reads process environment variables, not `.env` files automatically.
 
+### Administrator-assisted account reset
+
+The `users.password` field stores a salted hash, never a plain-text password. To repair an account whose password field was manually edited, run `.venv/Scripts/python.exe tools/password_hash.py` locally. Enter and confirm a new password at its hidden prompts, copy the entire generated hash into that account's `users.password` field, and increment its `credential_version` by one to invalidate existing sessions. Sign in with the entered password, not the hash. This does not change financial records. Prefer Settings or recovery codes for normal password changes.
+
 ## Financial model
 
 - Transactions are the source for income, expenses, budgets and charts. Money in the ledger is stored as integer hundredths; SQLite stores exact scaled fields for other monetary records, and PostgreSQL uses fixed-precision numeric fields. Unit prices support four decimals and share units support six.
