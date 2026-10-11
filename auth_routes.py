@@ -2,7 +2,7 @@
 import secrets
 from flask import Blueprint, request, session, render_template, redirect, abort, flash, current_app
 from db import get_db, is_postgres
-from security import hash_password, verify_password, strong_password, throttle, normalize_credential
+from security import hash_password, verify_password, valid_pin, throttle, normalize_credential
 
 auth = Blueprint('auth', __name__)
 
@@ -10,9 +10,9 @@ auth = Blueprint('auth', __name__)
 def register():
     if request.method=='POST':
         username=request.form.get('username','').strip()
-        password=request.form.get('pin','')
-        if not 3<=len(username)<=60 or not strong_password(password):
-            return render_template('register.html',error='Use a username of 3–60 characters and a password of 12–128 characters.'),400
+        password=normalize_credential(request.form.get('pin',''))
+        if not 3<=len(username)<=60 or not valid_pin(password):
+            return render_template('register.html',error='Use a username of 3–60 characters and a PIN of exactly 4 digits.'),400
         code=secrets.token_hex(16)
         with get_db() as conn:
             if not throttle(conn,username): abort(429,description='Too many attempts. Try again in 15 minutes.')
@@ -49,7 +49,7 @@ def login():
                 conn.commit()
             session.clear()
             session.update(user_id=user['id'],username=user['username'],currency=user['currency'] or '£',
-                           upgrade_password=not strong_password(password),credential_version=user['credential_version'])
+                           upgrade_password=not valid_pin(password),credential_version=user['credential_version'])
             session.permanent=True
             setup=conn.execute('SELECT setup_complete FROM account_settings WHERE user_id=?',(user['id'],)).fetchone()
         response=redirect('/dashboard' if setup and setup['setup_complete'] else '/setup')
@@ -71,9 +71,9 @@ def recover():
     if request.method=='POST':
         username=request.form.get('username','').strip()
         code=request.form.get('security_answer','').strip().lower()
-        password=request.form.get('new_pin','')
-        if not strong_password(password) or password!=request.form.get('confirm_pin'):
-            return render_template('forgot_pin.html',error='Use matching passwords of 12–128 characters.'),400
+        password=normalize_credential(request.form.get('new_pin',''))
+        if not valid_pin(password) or password!=normalize_credential(request.form.get('confirm_pin','')):
+            return render_template('forgot_pin.html',error='Use matching PINs of exactly 4 digits.'),400
         with get_db() as conn:
             if not throttle(conn,username): abort(429,description='Too many attempts. Try again in 15 minutes.')
             user=conn.execute('SELECT * FROM users WHERE username=?',(username,)).fetchone()

@@ -4,7 +4,7 @@ The app now uses one exact-money ledger for income, expenses, budgets, charts an
 
 Net worth now uses a dated starting cash balance, cash movements, portfolio holdings and outstanding debt. Negative monthly cash flow remains visible. Savings contributions are tracked without counting the same asset twice. Investment transfers change cash without inflating everyday spending. Latest-month charts and the 12-month scenario align income/expense records by month; known recurring bills are included in the scenario.
 
-Authentication now uses salted scrypt hashes, database-backed attempt limits, CSRF-protected POST actions, recovery codes, hardened cookies and session invalidation after credential changes. Existing PINs remain usable for sign-in and password upgrade. User-entered names are safely rendered; static assets are the only offline cache entries. Financial pages and APIs use no-store, and offline navigation shows a reconnect screen.
+PIN authentication uses salted scrypt hashes, owner-requested retry behaviour without temporary lockouts, CSRF-protected POST actions, recovery codes, hardened cookies and session invalidation after credential changes. Existing PINs remain usable for sign-in and password upgrade. User-entered names are safely rendered; static assets are the only offline cache entries. Financial pages and APIs use no-store, and offline navigation shows a reconnect screen.
 
 Guided setup, quick transaction entry, search, reviewed CSV import with duplicate detection, complete JSON backup/restore and before-restore safety copies are implemented. The backend is split into authentication, ledger, reporting, data tools, shared finance and migration modules. Dependencies and chart assets are pinned, production debug is off, and README/project instructions describe the actual Flask application.
 
@@ -18,7 +18,7 @@ Local screenshots and the machine-readable report are under `.qa/screenshots/` (
 
 ## Validation and deployment limits
 
-All 28 regression tests pass. The suite covers ledger edits/deletions, exact cents, negative cash flow, payment reversals, concurrent bill payments, investment transfers, user isolation, credential upgrade/recovery, request protection, import confirmation/duplicates, backup round trips, snapshots, fractional unit prices, exports and PostgreSQL-style numeric result values.
+All 35 regression tests pass. The suite covers ledger edits/deletions, exact cents, negative cash flow, payment reversals, concurrent bill payments, investment transfers, user isolation, credential upgrade/recovery, request protection, import confirmation/duplicates, backup round trips, snapshots, fractional unit prices, exports and PostgreSQL-style numeric result values.
 
 A read-only migration review migrated a consistent copy of the existing local database twice, reconciled nine category/month totals, checked SQLite integrity/foreign keys and confirmed the original database file was unchanged. First production use migrates automatically; original summaries are retained and local pre-migration backups are saved.
 

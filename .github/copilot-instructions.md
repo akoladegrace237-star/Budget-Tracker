@@ -29,7 +29,7 @@ This is a Flask web application, not an Excel generator or a browser-only static
 - Use salted scrypt hashes. Preserve the one-time upgrade path for old SHA-256 PINs; never introduce new unsalted credentials.
 - New passwords require 12–128 characters. Recovery uses random codes, not security questions.
 - All changing actions use POST and CSRF. Forms include a server-rendered token; fetch calls send X-CSRF-Token.
-- Authenticate and rate-limit sensitive credential changes. Password changes/recovery invalidate other sessions.
+- Authenticate sensitive credential changes. Password changes/recovery invalidate other sessions.
 - Do not put user-entered text directly into innerHTML or inline JavaScript. Use textContent, DOM APIs, escaped text and Jinja tojson.
 - Validate money, category, date and due day on the server. Browser validation is supplementary.
 - Cache static assets only. Private HTML, APIs, exports and financial values use no-store.

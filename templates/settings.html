@@ -90,38 +90,38 @@
     </div>
 </form>
 
-<!-- ── Change Password ── -->
+<!-- ── Change PIN ── -->
 <form method="POST" action="/settings">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="password">
     <div class="settings-section">
-        <div class="settings-section-label">🔑 Change Password</div>
+        <div class="settings-section-label">🔑 Change PIN</div>
         {% if request.args.get('error') == 'wrong_password' %}
-        <div class="alert alert-danger">Current password is incorrect.</div>
+        <div class="alert alert-danger">Current PIN is incorrect.</div>
         {% elif request.args.get('error') == 'password_mismatch' %}
-        <div class="alert alert-danger">New Passwords don't match or are shorter than 12 characters.</div>
+        <div class="alert alert-danger">New PINs do not match or are not exactly 4 digits.</div>
         {% endif %}
         <div class="form-grid-2col">
             <div class="form-group">
-                <label for="current_password">Current Password</label>
-                <input type="password" id="current_password" name="current_password" maxlength="128" autocomplete="current-password" required placeholder="Current password or old PIN">
+                <label for="current_password">Current PIN</label>
+                <input type="password" id="current_password" name="current_password" maxlength="128" autocomplete="current-password" required placeholder="Current PIN or previous password">
             </div>
             <div class="form-group"></div>
             <div class="form-group">
-                <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" minlength="12" maxlength="128" autocomplete="new-password" required placeholder="••••">
+                <label for="new_password">New PIN</label>
+                <input type="password" id="new_password" name="new_password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" required placeholder="••••">
             </div>
             <div class="form-group">
-                <label for="confirm_password">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" minlength="12" maxlength="128" autocomplete="new-password" required placeholder="••••">
+                <label for="confirm_password">Confirm New PIN</label>
+                <input type="password" id="confirm_password" name="confirm_password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password" required placeholder="••••">
             </div>
         </div>
-        <button type="submit" class="btn-submit settings-save">Update Password</button>
+        <button type="submit" class="btn-submit settings-save">Update PIN</button>
     </div>
 </form>
 
 <section class="settings-section"><h2>Starting balance and data</h2><p class="help-text">Your currency choice changes the display symbol; it does not convert amounts. Savings entries record contributions and are already part of your starting cash and transactions, so they are not added to net worth again.</p><div class="export-grid"><a class="export-btn" href="/setup">Starting balance</a><a class="export-btn" href="/import">Import CSV</a><a class="export-btn" href="/export/transactions">Transactions CSV</a><a class="export-btn" href="/backup">Complete backup</a><a class="export-btn" href="/restore">Restore backup</a><a class="export-btn" href="/backup/previous">Before-restore backup</a></div></section>
-<section class="settings-section"><h2>Recovery code</h2><p class="help-text">Generate a new recovery code and save it somewhere safe. This replaces favourite-colour recovery and any previous code.</p><form method="POST" action="/recovery-code"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-group"><label for="recoveryPassword">Current password</label><input id="recoveryPassword" name="current_password" type="password" autocomplete="current-password" required></div><button class="btn-submit" type="submit">Generate recovery code</button></form></section>
+<section class="settings-section"><h2>Recovery code</h2><p class="help-text">Generate a new recovery code and save it somewhere safe. This replaces favourite-colour recovery and any previous code.</p><form method="POST" action="/recovery-code"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-group"><label for="recoveryPIN">Current PIN</label><input id="recoveryPIN" name="current_password" type="password" autocomplete="current-password" required></div><button class="btn-submit" type="submit">Generate recovery code</button></form></section>
 <!-- ── Export Section ── -->
 <div class="settings-section">
     <div class="settings-section-label">📥 Export Data</div>

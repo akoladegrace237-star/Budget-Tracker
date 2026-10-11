@@ -20,10 +20,10 @@
                        value="{{ remembered_user }}" autocomplete="username" {% if not remembered_user %}autofocus{% endif %}>
             </div>
             <div class="form-group">
-                <label for="pin">Password or existing PIN</label>
-                <input type="password" id="pin" name="pin" maxlength="128" autocomplete="current-password"
-                       placeholder="Your password or original 4-digit PIN" required {% if remembered_user %}autofocus{% endif %}>
-                <small>Existing account? Your original PIN still works. The Railway SECRET_KEY is not your sign-in password.</small>
+                <label for="pin">4-digit PIN</label>
+                <input type="password" id="pin" name="pin" maxlength="128" inputmode="numeric" autocomplete="current-password"
+                       placeholder="Your 4-digit PIN" required {% if remembered_user %}autofocus{% endif %}>
+                <small>Use your 4-digit PIN. If you previously set a password, it still works until you change it to a PIN in Settings.</small>
             </div>
             <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
                 <input type="checkbox" id="remember" name="remember" value="1"
@@ -33,7 +33,7 @@
             <button type="submit" class="btn btn-primary btn-full">Sign In</button>
         </form>
 
-        <p class="auth-switch"><a href="/forgot-pin">Forgot your Password?</a></p>
+        <p class="auth-switch"><a href="/forgot-pin">Forgot your PIN?</a></p>
         <p class="auth-switch">Don't have an account? <a href="/register">Register here</a></p>
     </div>
 </div>

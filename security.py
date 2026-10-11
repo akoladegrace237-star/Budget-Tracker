@@ -3,8 +3,6 @@ import hashlib
 import hmac
 import os
 import secrets
-import time
-from collections import defaultdict
 from datetime import timedelta
 from pathlib import Path
 from flask import abort, request, session, jsonify
@@ -27,8 +25,9 @@ def verify_password(stored, value):
         return hmac.compare_digest(stored, hashlib.sha256(value.encode()).hexdigest())
     return check_password_hash(stored, value)
 
-def strong_password(value):
-    return 12 <= len(value) <= 128
+def valid_pin(value):
+    value=normalize_credential(value)
+    return value.isascii() and value.isdigit() and len(value)==4
 
 def configure(app):
     secret = os.environ.get('SECRET_KEY')
@@ -115,18 +114,9 @@ def configure(app):
         return response
 
 def throttle(conn, username):
-    """Shared DB-backed limits across workers; count every authentication attempt."""
-    now = int(time.time())
-    keys = ['account:'+username.casefold(), 'ip:'+(request.remote_addr or 'unknown')]
-    for key in keys:
-        row = conn.execute('SELECT * FROM auth_attempts WHERE key=?', (key,)).fetchone()
-        limit = 10 if key.startswith('account:') else 40
-        if row and now-row['started'] < 900 and row['attempts'] >= limit:
-            return False
-    for key in keys:
-        conn.execute('INSERT INTO auth_attempts (key,attempts,started) VALUES (?,1,?) '
-                     'ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN auth_attempts.started<? THEN 1 ELSE auth_attempts.attempts+1 END, '
-                     'started=CASE WHEN auth_attempts.started<? THEN excluded.started ELSE auth_attempts.started END',
-                     (key, now, now-900, now-900))
-    conn.commit()
+    """Personal-use policy: authentication retries never temporarily lock out the owner.
+
+    Existing attempt rows are deliberately ignored, so an old lockout clears
+    as soon as this version is deployed. Keep the function for route compatibility.
+    """
     return True

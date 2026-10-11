@@ -12,13 +12,13 @@ python -m venv .venv
 .venv/Scripts/python.exe app.py
 ```
 
-Open http://127.0.0.1:5000, create an account, save your recovery code and complete setup. Existing accounts can still sign in with their old PIN; change it to a password of at least 12 characters in Settings and generate a recovery code. Favourite-colour recovery has been retired.
+Open http://127.0.0.1:5000, create an account, save your recovery code and complete setup. Existing accounts can still sign in with their old PIN; keep using it or change it to another four-digit PIN in Settings and generate a recovery code. Favourite-colour recovery has been retired.
 
 Local development creates an ignored `.local-secret` to keep sessions valid across restarts. Debug mode is off unless `FLASK_DEBUG=1` is explicitly set. `.env.example` documents environment variables; the app reads process environment variables, not `.env` files automatically.
 
 ### Administrator-assisted account reset
 
-The `users.password` field stores a salted hash, never a plain-text password. To repair an account whose password field was manually edited, run `.venv/Scripts/python.exe tools/password_hash.py` locally. Enter and confirm a new password at its hidden prompts, copy the entire generated hash into that account's `users.password` field, and increment its `credential_version` by one to invalidate existing sessions. Sign in with the entered password, not the hash. This does not change financial records. Prefer Settings or recovery codes for normal password changes.
+The `users.password` field stores a salted hash, never a plain-text password. To repair an account whose password field was manually edited, run `.venv/Scripts/python.exe tools/password_hash.py` locally. Enter and confirm a four-digit PIN at its hidden prompts, copy the entire generated hash into that account's `users.password` field, and increment its `credential_version` by one to invalidate existing sessions. Sign in with the entered PIN, not the hash. This does not change financial records. Prefer Settings or recovery codes for normal password changes.
 
 ## Financial model
 
@@ -56,7 +56,7 @@ Restore requires the current password and a replacement checkbox. It validates t
 
 Data is stored in the application's database, not browser LocalStorage. Browser storage is used only for UI preferences. The service worker caches an allowlist of static assets; private pages, APIs, exports and financial data are never cached. Offline navigation shows a reconnect screen. Budget editing requires a connection to the server. Logout clears the session and asks supported browsers to clear cache/storage.
 
-Passwords and recovery codes use salted scrypt hashes. Authentication/recovery attempts are limited in the database across workers. Forms require CSRF tokens; destructive actions use POST. Sessions are invalidated after password changes/recovery. New accounts require passwords of 12–128 characters.
+PINs and recovery codes use salted scrypt hashes. Temporary authentication lockouts are disabled for this owner?s personal-use app; old attempt counters are ignored. Forms require CSRF tokens; destructive actions use POST. Sessions are invalidated after password changes/recovery. New accounts require passwords of 12–128 characters.
 
 ## Deploy
 

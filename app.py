@@ -5,7 +5,7 @@ from datetime import datetime
 from db import get_db, init_db, is_postgres, lock_user
 
 app = Flask(__name__)
-from security import configure, hash_password, verify_password, strong_password
+from security import configure, hash_password, verify_password, valid_pin, normalize_credential
 from finance import cash_flow, today, SafeCSVWriter
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -543,8 +543,8 @@ def settings():
 
         elif action == "password":
             current_pw = request.form.get("current_password", "")
-            new_pw     = request.form.get("new_password", "")
-            confirm_pw = request.form.get("confirm_password", "")
+            new_pw     = normalize_credential(request.form.get("new_password", ""))
+            confirm_pw = normalize_credential(request.form.get("confirm_password", ""))
 
             from security import throttle
             if not throttle(conn, session['username']):
@@ -555,7 +555,7 @@ def settings():
             if not verify_password(user_row["password"], current_pw):
                 conn.close()
                 return redirect("/settings?error=wrong_password")
-            if new_pw != confirm_pw or not strong_password(new_pw):
+            if new_pw != confirm_pw or not valid_pin(new_pw):
                 conn.close()
                 return redirect("/settings?error=password_mismatch")
 

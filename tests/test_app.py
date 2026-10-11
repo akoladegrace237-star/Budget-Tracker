@@ -158,7 +158,7 @@ class BudgetTests(unittest.TestCase):
         response=self.post('/restore',file=(io.BytesIO(b'{"version":1}'),'bad.json'),current_password='secure-test-password',confirm='replace')
         self.assertEqual(response.status_code,400)
         self.assertEqual(self.data()['totals']['expenses'],25.2)
-    def test_old_pin_upgrades_hash_and_prompts_password_change(self):
+    def test_old_pin_upgrades_hash_without_requiring_password_change(self):
         with db.get_db() as conn:
             conn.execute('UPDATE users SET password=? WHERE id=1',(hashlib.sha256(b'1234').hexdigest(),)); conn.commit()
         response=self.post('/login',username='tester',pin='1234')
@@ -166,11 +166,13 @@ class BudgetTests(unittest.TestCase):
         with db.get_db() as conn:
             value=conn.execute('SELECT password FROM users').fetchone()['password']
         self.assertTrue(value.startswith('scrypt:')); self.assertTrue(verify_password(value,'1234'))
-        with self.client.session_transaction() as s: self.assertTrue(s['upgrade_password'])
-    def test_throttle_is_persistent(self):
-        for i in range(10):
+        with self.client.session_transaction() as s: self.assertFalse(s['upgrade_password'])
+    def test_personal_signin_has_no_temporary_lockout(self):
+        with db.get_db() as conn:
+            conn.execute('INSERT INTO auth_attempts VALUES (?,?,?)',('account:tester',1000,__import__('time').time()));conn.commit()
+        for i in range(12):
             self.assertEqual(self.post('/login',username='tester',pin='wrong').status_code,401)
-        self.assertEqual(self.post('/login',username='tester',pin='secure-test-password').status_code,429)
+        self.assertEqual(self.post('/login',username='tester',pin='secure-test-password').status_code,302)
     def test_all_pages_render_and_private_pages_are_not_cached(self):
         for path in ['/dashboard','/income','/expenses','/transactions','/recurring','/budgets','/savings','/debt','/projections','/shares','/settings','/setup','/import','/restore']:
             response=self.client.get(path)
@@ -195,19 +197,19 @@ class BudgetTests(unittest.TestCase):
             conn.execute('UPDATE users SET password=? WHERE id=1',(hash_password('1234'),)); conn.commit()
         other=application.app.test_client()
         with other.session_transaction() as s: s.update(user_id=1,username='tester',credential_version=1)
-        response=self.post('/settings',action='password',current_password='1234',new_password='new-long-password',confirm_password='new-long-password')
+        response=self.post('/settings',action='password',current_password='1234',new_password='4321',confirm_password='4321')
         self.assertEqual(response.status_code,302)
         self.assertEqual(other.get('/dashboard').status_code,302)
         self.assertEqual(self.client.get('/dashboard').status_code,200)
 
     def test_recovery_code_rotates_and_old_security_answer_cannot_reset(self):
-        response=self.post('/forgot-pin',username='tester',security_answer='a'*32,new_pin='new-test-password',confirm_pin='new-test-password')
+        response=self.post('/forgot-pin',username='tester',security_answer='a'*32,new_pin='5678',confirm_pin='5678')
         self.assertEqual(response.status_code,200)
         code=re.search(r'<code class="recovery-code">([^<]+)</code>',response.get_data(as_text=True))[1]
         self.assertEqual(len(code),32)
         with db.get_db() as conn:
             user=conn.execute('SELECT * FROM users WHERE id=1').fetchone()
-            self.assertTrue(verify_password(user['password'],'new-test-password'))
+            self.assertTrue(verify_password(user['password'],'5678'))
             self.assertTrue(verify_password(user['security_answer'],code))
 
     def test_forecast_includes_known_unpaid_bills(self):
@@ -256,11 +258,11 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(self.data()['totals']['portfolio'],421.25)
 
     def test_new_credentials_and_recovery_reject_weak_values(self):
-        response=self.post('/register',username='weak-account',pin='1234')
+        response=self.post('/register',username='weak-account',pin='123')
         self.assertEqual(response.status_code,400)
         with db.get_db() as conn:
             conn.execute('UPDATE users SET security_answer=? WHERE id=1',(hashlib.sha256(b'blue').hexdigest(),));conn.commit()
-        response=self.post('/forgot-pin',username='tester',security_answer='blue',new_pin='a-new-long-password',confirm_pin='a-new-long-password')
+        response=self.post('/forgot-pin',username='tester',security_answer='blue',new_pin='6789',confirm_pin='6789')
         self.assertEqual(response.status_code,400)
 
     def test_expense_export_includes_housing_and_subscriptions(self):
@@ -323,6 +325,34 @@ class BudgetTests(unittest.TestCase):
         with self.client.session_transaction() as s:
             s.clear();s['csrf_token']='test-csrf'
         self.assertEqual(self.post('/login',username='tester',pin=password).status_code,302)
+
+    def test_registration_requires_exactly_four_digits_and_preserves_zeroes(self):
+        for pin in ['123','12345','abcd','12a4','long-account-password']:
+            self.assertEqual(self.post('/register',username='pin-owner',pin=pin).status_code,400)
+        self.assertEqual(self.post('/register',username='pin-owner',pin='0012').status_code,200)
+        with db.get_db() as conn:
+            user=conn.execute('SELECT * FROM users WHERE username=?',('pin-owner',)).fetchone()
+            self.assertTrue(user['password'].startswith('scrypt:'))
+            self.assertTrue(verify_password(user['password'],'0012'))
+        self.assertEqual(self.post('/login',username='pin-owner',pin='0012').status_code,302)
+
+    def test_existing_password_can_be_changed_to_pin(self):
+        self.assertEqual(self.post('/settings',action='password',current_password='secure-test-password',
+                                   new_password='2468',confirm_password='2468').status_code,302)
+        with db.get_db() as conn:
+            user=conn.execute('SELECT password FROM users WHERE id=1').fetchone()
+            self.assertTrue(verify_password(user['password'],'2468'))
+            self.assertFalse(verify_password(user['password'],'secure-test-password'))
+
+    def test_admin_hash_helper_accepts_pin(self):
+        from tools.password_hash import main
+        from unittest.mock import patch
+        from contextlib import redirect_stdout
+        output=io.StringIO()
+        with patch('tools.password_hash.getpass',side_effect=['0007','0007']),redirect_stdout(output):
+            self.assertEqual(main(),0)
+        hashed=next(line for line in output.getvalue().splitlines() if line.startswith('scrypt:'))
+        self.assertTrue(verify_password(hashed,'0007'))
 
 class MigrationTests(unittest.TestCase):
     def test_legacy_summary_reconciliation_is_once_and_retains_originals(self):

@@ -19,10 +19,10 @@
                 <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus>
             </div>
             <div class="form-group">
-                <label for="pin">Password</label>
-                <input type="password" id="pin" name="pin" minlength="12" maxlength="128" autocomplete="new-password"
-                       placeholder="At least 12 characters" required>
-                <small style="color:var(--text-secondary,#888);">Choose a password of at least 12 characters you'll remember</small>
+                <label for="pin">PIN</label>
+                <input type="password" id="pin" name="pin" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" autocomplete="new-password"
+                       placeholder="4-digit PIN" required>
+                <small style="color:var(--text-secondary,#888);">Choose a 4-digit PIN you'll remember</small>
             </div>
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
         </form>

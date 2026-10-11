@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 OUT=Path(__file__).resolve().parent.parent/'.qa'/'screenshots'
 OUT.mkdir(exist_ok=True)
-BASE='http://127.0.0.1:5055'
+BASE=os.environ.get('BUDGET_PREVIEW_URL','http://127.0.0.1:5055')
 USERNAME='review-'+secrets.token_hex(3)
 
 with sync_playwright() as p:
@@ -25,13 +25,13 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':1440,'height':1000})
     page.goto(BASE+'/register')
     page.locator('#username').fill(USERNAME)
-    page.locator('#pin').fill('visual-review-password')
+    page.locator('#pin').fill('2468')
     page.get_by_role('button',name='Create Account').click()
     page.wait_for_url('**/register')
     if page.get_by_text('Save your recovery code',exact=True).count():
         page.get_by_role('link',name='I saved my code').click()
     else: page.goto(BASE+'/login')
-    page.locator('#username').fill(USERNAME);page.locator('#pin').fill('visual-review-password')
+    page.locator('#username').fill(USERNAME);page.locator('#pin').fill('2468')
     page.get_by_role('button',name='Sign In',exact=True).click()
     page.wait_for_url(re.compile('.*(?:setup|dashboard)$'))
     page.goto(BASE+'/setup')
